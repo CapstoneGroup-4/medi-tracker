@@ -16,11 +16,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
 
 @Configuration
-@EnableMethodSecurity
+@EnableWebSecurity(debug = true)
 public class WebSecurityConfig {
+
   @Autowired
   UserDetailsServiceImpl userDetailsService;
 
@@ -31,17 +33,17 @@ public class WebSecurityConfig {
   public AuthTokenFilter authenticationJwtTokenFilter() {
     return new AuthTokenFilter();
   }
-  
+
   @Bean
   public DaoAuthenticationProvider authenticationProvider() {
-      DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-       
-      authProvider.setUserDetailsService(userDetailsService);
-      authProvider.setPasswordEncoder(passwordEncoder());
-   
-      return authProvider;
+    DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+
+    authProvider.setUserDetailsService(userDetailsService);
+    authProvider.setPasswordEncoder(passwordEncoder());
+
+    return authProvider;
   }
-  
+
   @Bean
   public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
     return authConfig.getAuthenticationManager();
@@ -51,22 +53,31 @@ public class WebSecurityConfig {
   public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
   }
-  
+
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    // 1. 禁用 CSRF（前后端分离通常禁用）
     http.csrf(csrf -> csrf.disable())
-        .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(auth -> 
-          auth.requestMatchers("/api/auth/**").permitAll()
-              .requestMatchers("/api/test/**").permitAll()
-              .anyRequest().authenticated()
-        );
-    
+
+            // 2. 设置未授权处理逻辑
+            .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+
+            // 3. 设置为无状态的会话管理，RESTful API 不需要保存 session
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+            // 4. 配置允许未认证的端点，其他端点需要认证
+            .authorizeHttpRequests(auth ->
+                    auth.requestMatchers("/api/auth/**").permitAll()  // 允许未认证访问 /api/auth/signup 和 /api/auth/signin
+                            .anyRequest().authenticated()                 // 其他所有请求需要认证
+            );
+
+    // 5. 配置认证提供者
     http.authenticationProvider(authenticationProvider());
 
+    // 6. 添加 JWT 过滤器，在 UsernamePasswordAuthenticationFilter 之前执行
     http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
-    
+
+    // 7. 构建配置
     return http.build();
   }
 }

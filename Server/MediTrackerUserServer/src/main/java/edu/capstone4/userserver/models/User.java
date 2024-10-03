@@ -1,5 +1,6 @@
 package edu.capstone4.userserver.models;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -37,6 +38,11 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
+
+    // 新增的字段：存储验证码 (verificationCode)，储验证码生成时间 (codeGeneratedTime)
+    private String verificationCode;
+
+    private Instant codeGeneratedTime;
 
     public User() {
     }
@@ -85,5 +91,22 @@ public class User {
 
     public void setRoles(Set<Role> roles) {
         this.roles = roles;
+    }
+
+    // 存储验证码和验证码的生成时间
+    public String getVerificationCode() {
+        return verificationCode;
+    }
+
+    public void setVerificationCode(String verificationCode) {
+        this.verificationCode = verificationCode;
+    }
+
+    public Instant getCodeGeneratedTime() {
+        return codeGeneratedTime;
+    }
+
+    public void setCodeGeneratedTime(Instant codeGeneratedTime) {
+        this.codeGeneratedTime = codeGeneratedTime;
     }
 }

@@ -16,6 +16,8 @@ import edu.capstone4.userserver.repository.RoleRepository;
 import edu.capstone4.userserver.repository.UserRepository;
 import edu.capstone4.userserver.security.jwt.JwtUtils;
 import edu.capstone4.userserver.security.services.UserDetailsImpl;
+import edu.capstone4.userserver.services.EmailService;
+import edu.capstone4.userserver.utils.VerificationCodeGenerator;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +52,9 @@ public class AuthController {
 
     @Autowired
     JwtUtils jwtUtils;
+
+    @Autowired
+    EmailService emailService;  // 注入邮件服务
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -105,13 +110,11 @@ public class AuthController {
                         Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
                                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
                         roles.add(adminRole);
-
                         break;
                     case "mod":
                         Role modRole = roleRepository.findByName(ERole.ROLE_DOCTOR)
                                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
                         roles.add(modRole);
-
                         break;
                     default:
                         Role userRole = roleRepository.findByName(ERole.ROLE_USER)
@@ -124,6 +127,12 @@ public class AuthController {
         user.setRoles(roles);
         userRepository.save(user);
 
-        return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+        // 生成验证码
+        String verificationCode = VerificationCodeGenerator.generateCode();
+
+        // 调用邮件服务发送验证码
+        emailService.sendVerificationCode(signUpRequest.getEmail(), "Email Verification", "Your verification code is: " + verificationCode);
+
+        return ResponseEntity.ok(new MessageResponse("User registered successfully! A verification code has been sent to your email."));
     }
 }
