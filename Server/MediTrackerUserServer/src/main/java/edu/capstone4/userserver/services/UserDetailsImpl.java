@@ -1,4 +1,4 @@
-package edu.capstone4.userserver.security.services;
+package edu.capstone4.userserver.services;
 
 import java.util.Collection;
 import java.util.List;

@@ -1,8 +1,8 @@
-package edu.capstone4.userserver.security.jwt;
+package edu.capstone4.userserver.jwt;
 
 import java.io.IOException;
 
-import edu.capstone4.userserver.security.services.UserDetailsServiceImpl;
+import edu.capstone4.userserver.services.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,9 +32,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
   protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
     // 添加日志记录请求路径
-    logger.debug("JWT Filter invoked for request path: " + request.getRequestURI());
-    logger.debug("Checking if request path needs authentication: " + request.getRequestURI());
-
+    logger.debug("Entering JWT Filter for request: " + request.getRequestURI());
     // Skip JWT validation for signup endpoint
     if (request.getServletPath().equals("/api/auth/signup")) {
       filterChain.doFilter(request, response);
@@ -61,6 +59,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     }
 
     filterChain.doFilter(request, response);
+    logger.debug("Exiting JWT Filter for request: " + request.getRequestURI());
   }
 
   private String parseJwt(HttpServletRequest request) {

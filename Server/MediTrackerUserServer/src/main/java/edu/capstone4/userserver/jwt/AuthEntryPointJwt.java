@@ -1,4 +1,4 @@
-package edu.capstone4.userserver.security.jwt;
+package edu.capstone4.userserver.jwt;
 
 import java.io.IOException;
 import java.util.HashMap;

@@ -1,16 +1,18 @@
-package edu.capstone4.userserver.security;
+package edu.capstone4.userserver.config;
 
-import edu.capstone4.userserver.security.jwt.AuthEntryPointJwt;
-import edu.capstone4.userserver.security.jwt.AuthTokenFilter;
-import edu.capstone4.userserver.security.services.UserDetailsServiceImpl;
+import edu.capstone4.userserver.jwt.AuthEntryPointJwt;
+import edu.capstone4.userserver.jwt.AuthTokenFilter;
+import edu.capstone4.userserver.services.UserDetailsServiceImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +24,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 @Configuration
 @EnableWebSecurity(debug = true)
 public class WebSecurityConfig {
+  private static final Logger log = LoggerFactory.getLogger(WebSecurityConfig.class);
 
   @Autowired
   UserDetailsServiceImpl userDetailsService;
@@ -31,6 +34,7 @@ public class WebSecurityConfig {
 
   @Bean
   public AuthTokenFilter authenticationJwtTokenFilter() {
+    log.info("In authenticationJwtTokenFilter");
     return new AuthTokenFilter();
   }
 
@@ -58,25 +62,22 @@ public class WebSecurityConfig {
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     // 1. 禁用 CSRF（前后端分离通常禁用）
     http.csrf(csrf -> csrf.disable())
-
             // 2. 设置未授权处理逻辑
             .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-
             // 3. 设置为无状态的会话管理，RESTful API 不需要保存 session
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
             // 4. 配置允许未认证的端点，其他端点需要认证
             .authorizeHttpRequests(auth ->
                     auth.requestMatchers("/api/auth/**").permitAll()  // 允许未认证访问 /api/auth/signup 和 /api/auth/signin
-                            .anyRequest().authenticated()                 // 其他所有请求需要认证
+                            .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/index.html").permitAll()
+                            .requestMatchers("/api/test/all").permitAll()
+                            .anyRequest().authenticated()// 其他所有请求需要认证
             );
 
     // 5. 配置认证提供者
     http.authenticationProvider(authenticationProvider());
-
     // 6. 添加 JWT 过滤器，在 UsernamePasswordAuthenticationFilter 之前执行
     http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
-
     // 7. 构建配置
     return http.build();
   }

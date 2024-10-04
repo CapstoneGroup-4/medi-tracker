@@ -9,5 +9,4 @@ public class MediTrackerUserServerApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(MediTrackerUserServerApplication.class, args);
 	}
-
 }
