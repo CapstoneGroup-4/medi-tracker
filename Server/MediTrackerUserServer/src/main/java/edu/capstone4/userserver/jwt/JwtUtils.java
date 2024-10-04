@@ -1,8 +1,8 @@
-package edu.capstone4.userserver.security.jwt;
+package edu.capstone4.userserver.jwt;
 
 import java.util.Date;
 
-import edu.capstone4.userserver.security.services.UserDetailsImpl;
+import edu.capstone4.userserver.services.UserDetailsImpl;
 import io.jsonwebtoken.security.SecureDigestAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

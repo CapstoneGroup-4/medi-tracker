@@ -1,4 +1,4 @@
-package edu.capstone4.userserver.security.services;
+package edu.capstone4.userserver.services;
 
 import edu.capstone4.userserver.models.User;
 import edu.capstone4.userserver.repository.UserRepository;
