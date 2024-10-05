@@ -39,10 +39,7 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
-    // 新增的字段：存储验证码 (verificationCode)，储验证码生成时间 (codeGeneratedTime)
-    private String verificationCode;
 
-    private Instant codeGeneratedTime;
 
     public User() {
     }
@@ -93,20 +90,5 @@ public class User {
         this.roles = roles;
     }
 
-    // 存储验证码和验证码的生成时间
-    public String getVerificationCode() {
-        return verificationCode;
-    }
 
-    public void setVerificationCode(String verificationCode) {
-        this.verificationCode = verificationCode;
-    }
-
-    public Instant getCodeGeneratedTime() {
-        return codeGeneratedTime;
-    }
-
-    public void setCodeGeneratedTime(Instant codeGeneratedTime) {
-        this.codeGeneratedTime = codeGeneratedTime;
-    }
 }
