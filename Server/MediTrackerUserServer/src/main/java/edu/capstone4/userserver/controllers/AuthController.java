@@ -17,7 +17,7 @@ import edu.capstone4.userserver.repository.UserRepository;
 import edu.capstone4.userserver.jwt.JwtUtils;
 import edu.capstone4.userserver.services.UserDetailsImpl;
 import edu.capstone4.userserver.services.EmailService;
-import edu.capstone4.userserver.utils.VerificationCodeGenerator;
+import edu.capstone4.userserver.services.VerificationCodeService;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +38,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    @Autowired
+    private VerificationCodeService verificationCodeService;
+
     @Autowired
     AuthenticationManager authenticationManager;
 
@@ -94,7 +98,7 @@ public class AuthController {
         // Create new user's account
         User user = new User(signUpRequest.getUsername(),
                 signUpRequest.getEmail(),
-                encoder.encode(signUpRequest.getPassword()));
+                encoder.encode(signUpRequest.getPassword()), signUpRequest.getGender());
 
         Set<String> strRoles = signUpRequest.getRole();
         Set<Role> roles = new HashSet<>();
@@ -111,7 +115,7 @@ public class AuthController {
                                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
                         roles.add(adminRole);
                         break;
-                    case "mod":
+                    case "doc":
                         Role modRole = roleRepository.findByName(ERole.ROLE_DOCTOR)
                                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
                         roles.add(modRole);
@@ -125,13 +129,31 @@ public class AuthController {
         }
 
         user.setRoles(roles);
+
+        Integer age = signUpRequest.getAge();
+        if (age != null) {
+            user.setAge(age);
+        }
+
+        String sin = signUpRequest.getSin();
+        if (sin != null) {
+            user.setSin(sin);
+        }
+
+        String phone = signUpRequest.getPhone();
+        if (phone != null) {
+            user.setPhone(phone);
+        }
+
+        // verification code not verified
+        user.setEnabled(false);
+
         userRepository.save(user);
 
         // 生成验证码
-        String verificationCode = VerificationCodeGenerator.generateCode();
-
+        String verificationCode = verificationCodeService.generateCode();
         // 调用邮件服务发送验证码
-        emailService.sendVerificationCode(signUpRequest.getEmail(), "Email Verification", "Your verification code is: " + verificationCode);
+        emailService.sendVerificationCode(signUpRequest.getEmail(), verificationCode);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully! A verification code has been sent to your email."));
     }
