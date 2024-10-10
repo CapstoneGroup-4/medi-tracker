@@ -1,7 +1,8 @@
 package edu.capstone4.userserver.controllers;
 
-import edu.capstone4.userserver.config.WebSecurityConfig;
-import edu.capstone4.userserver.payload.response.MessageResponse;
+import edu.capstone4.userserver.config.ErrorCode;
+import edu.capstone4.userserver.config.ErrorCodeConfig;
+import edu.capstone4.userserver.payload.response.BaseResponse;
 import edu.capstone4.userserver.services.EmailService;
 import edu.capstone4.userserver.services.VerificationCodeService;
 import org.slf4j.Logger;
@@ -10,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
@@ -27,14 +27,16 @@ public class VerificationController {
     @Autowired
     private VerificationCodeService verificationCodeService;
 
+    @Autowired
+    private ErrorCodeConfig errorCodeConfig;
+
     @PostMapping("/send-code")
     public ResponseEntity<?> sendCode(@RequestParam String email) {
         String decodedEmail = URLDecoder.decode(email, StandardCharsets.UTF_8);
-        log.debug("email:" + decodedEmail);
         String verificationCode = verificationCodeService.generateCode();
         verificationCodeService.saveCode(decodedEmail, verificationCode);
         emailService.sendVerificationCode(decodedEmail, verificationCode);
-        return ResponseEntity.ok(new MessageResponse("Verification code sent successfully"));
+        return ResponseEntity.ok(new BaseResponse<>("Verification code sent successfully"));
     }
 
     @PostMapping("/verify-code")
@@ -43,10 +45,11 @@ public class VerificationController {
 
         if (isValid) {
             verificationCodeService.removeCode(email);
-            return ResponseEntity.ok(new MessageResponse("verificationSuccess"));
+            return ResponseEntity.ok(new BaseResponse<>("Verification code verify success"));
         }
 
-        return ResponseEntity.ok(new MessageResponse("verificationFailed"));
+        ErrorCode errorCode = errorCodeConfig.getCode("code-verify-failed");
+        return ResponseEntity.ok(new BaseResponse<>(errorCode.getMessage(), errorCode.getCode()));
     }
 }
 

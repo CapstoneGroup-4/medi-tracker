@@ -3,6 +3,7 @@ package edu.capstone4.userserver.models;
 import java.util.HashSet;
 import java.util.Set;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
@@ -36,6 +37,7 @@ public class User {
      * 1 - Female
      * 2 - Other
      */
+    @Schema(description = "Gender of the user: 0 - Male, 1 - Female, 2 - Other", example = "0")
     @NotNull
     private int gender;
 
@@ -140,7 +142,6 @@ public class User {
     public void setRoles(Set<Role> roles) {
         this.roles = roles;
     }
-
 
     public boolean isEnabled() {
         return enabled;

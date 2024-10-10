@@ -1,7 +1,6 @@
 package edu.capstone4.userserver.payload.request;
 
-import java.util.Set;
-
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 
 public class SignupRequest {
@@ -14,15 +13,32 @@ public class SignupRequest {
   @Email
   private String email;
 
-  private Set<String> role;
+  /**
+   * Role:
+   * Admin
+   * Docker
+   * User
+   */
+  @Schema(description = "Role of the user: admin, doc, user (default)", example = "user")
+  @NotBlank
+  @Size(min = 3, max = 5)
+  private String role;
 
   @NotBlank
   @Size(min = 6, max = 40)
   private String password;
 
+  /**
+   * Gender:
+   * 0 - Male
+   * 1 - Female
+   * 2 - Other
+   */
+  @Schema(description = "Gender of the user: 0 - Male, 1 - Female, 2 - Other", example = "0")
   @NotNull
   private Integer gender;  // gender changed to Integer to handle NotNull constraint
 
+  @Size(min = 9, max = 20)
   @Pattern(regexp = "^[a-zA-Z0-9]{9}$", message = "SIN number must be 9 digits")
   private String sin;
 
@@ -30,6 +46,7 @@ public class SignupRequest {
   @Max(value = 120, message = "Age must be less than or equal to 120")
   private Integer age;
 
+  @Size(max = 15)
   @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Invalid phone number format")
   private String phone;
 
@@ -58,11 +75,11 @@ public class SignupRequest {
     this.password = password;
   }
 
-  public Set<String> getRole() {
-    return this.role;
+  public String getRole() {
+    return role;
   }
 
-  public void setRole(Set<String> role) {
+  public void setRole(String role) {
     this.role = role;
   }
 
