@@ -1,7 +1,7 @@
 package edu.capstone4.userserver.controllers;
 
-import edu.capstone4.userserver.config.ErrorCode;
 import edu.capstone4.userserver.config.ErrorCodeConfig;
+import edu.capstone4.userserver.properties.ErrorCodeProperties;
 import edu.capstone4.userserver.payload.response.BaseResponse;
 import edu.capstone4.userserver.services.EmailService;
 import edu.capstone4.userserver.services.VerificationCodeService;
@@ -28,7 +28,7 @@ public class VerificationController {
     private VerificationCodeService verificationCodeService;
 
     @Autowired
-    private ErrorCodeConfig errorCodeConfig;
+    private ErrorCodeProperties errorCodeProperties;
 
     @PostMapping("/send-code")
     public ResponseEntity<?> sendCode(@RequestParam String email) {
@@ -48,8 +48,8 @@ public class VerificationController {
             return ResponseEntity.ok(new BaseResponse<>("Verification code verify success"));
         }
 
-        ErrorCode errorCode = errorCodeConfig.getCode("code-verify-failed");
-        return ResponseEntity.ok(new BaseResponse<>(errorCode.getMessage(), errorCode.getCode()));
+        ErrorCodeConfig errorCodeConfig = errorCodeProperties.getCode("code-verify-failed");
+        return ResponseEntity.ok(new BaseResponse<>(errorCodeConfig.getMessage(), errorCodeConfig.getCode()));
     }
 }
 

@@ -6,8 +6,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import edu.capstone4.userserver.config.ErrorCode;
 import edu.capstone4.userserver.config.ErrorCodeConfig;
+import edu.capstone4.userserver.properties.ErrorCodeProperties;
 import edu.capstone4.userserver.events.registers.RegistrationCompleteEvent;
 import edu.capstone4.userserver.models.Doctor;
 import edu.capstone4.userserver.models.ERole;
@@ -70,7 +70,7 @@ public class AuthController {
     ApplicationEventPublisher eventPublisher;
 
     @Autowired
-    private ErrorCodeConfig errorCodeConfig;
+    private ErrorCodeProperties errorCodeProperties;
 
     @Autowired
     UserDetailsServiceImpl userDetailsService;
@@ -82,8 +82,8 @@ public class AuthController {
         }
 
         // 从配置中获取错误码和消息
-        ErrorCode errorCode = errorCodeConfig.getCode("user-not-active");
-        return ResponseEntity.ok(new BaseResponse<>(errorCode.getMessage(), errorCode.getCode()));
+        ErrorCodeConfig errorCodeConfig = errorCodeProperties.getCode("user-not-active");
+        return ResponseEntity.ok(new BaseResponse<>(errorCodeConfig.getMessage(), errorCodeConfig.getCode()));
     }
 
     @PostMapping("/signin")
@@ -111,15 +111,15 @@ public class AuthController {
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
             return ResponseEntity
                     .badRequest()
-                    .body(new BaseResponse<>(errorCodeConfig.getCode("user-name-exist").getMessage(),
-                            errorCodeConfig.getCode("user-name-exist").getCode()));
+                    .body(new BaseResponse<>(errorCodeProperties.getCode("user-name-exist").getMessage(),
+                            errorCodeProperties.getCode("user-name-exist").getCode()));
         }
 
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
             return ResponseEntity
                     .badRequest()
-                    .body(new BaseResponse<>(errorCodeConfig.getCode("user-email-exist").getMessage(),
-                            errorCodeConfig.getCode("user-email-exist").getCode()));
+                    .body(new BaseResponse<>(errorCodeProperties.getCode("user-email-exist").getMessage(),
+                            errorCodeProperties.getCode("user-email-exist").getCode()));
         }
 
         // Create new user's account
@@ -197,8 +197,8 @@ public class AuthController {
         if (doctorRepository.existsByPersonalId(doctorSignupRequest.getPersonalId())) {
             return ResponseEntity
                     .badRequest()
-                    .body(new BaseResponse<>(errorCodeConfig.getCode("doctor-exist").getMessage(),
-                            errorCodeConfig.getCode("doctor-exist").getCode()));
+                    .body(new BaseResponse<>(errorCodeProperties.getCode("doctor-exist").getMessage(),
+                            errorCodeProperties.getCode("doctor-exist").getCode()));
         }
 
         // 获取User对象，假设请求包含用户ID，用来与Doctor关联
@@ -206,8 +206,8 @@ public class AuthController {
         if (userOptional.isEmpty()) {
             return ResponseEntity
                     .badRequest()
-                    .body(new BaseResponse<>(errorCodeConfig.getCode("user-not-found").getMessage(),
-                            errorCodeConfig.getCode("user-not-found").getCode()));
+                    .body(new BaseResponse<>(errorCodeProperties.getCode("user-not-found").getMessage(),
+                            errorCodeProperties.getCode("user-not-found").getCode()));
         }
 
         User user = userOptional.get();

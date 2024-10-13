@@ -1,25 +1,24 @@
 package edu.capstone4.userserver.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
-
-import java.util.Map;
-
-@Component
-@ConfigurationProperties(prefix = "app.error-codes")
 public class ErrorCodeConfig {
-    private Map<String, ErrorCode> codes;
 
-    public Map<String, ErrorCode> getCodes() {
-        return codes;
+    private int code;
+    private String message;
+
+    // Getters and Setters
+    public int getCode() {
+        return code;
     }
 
-    public void setCodes(Map<String, ErrorCode> codes) {
-        this.codes = codes;
+    public void setCode(int code) {
+        this.code = code;
     }
 
-    public ErrorCode getCode(String key) {
-        return codes.get(key);
+    public String getMessage() {
+        return message;
     }
 
+    public void setMessage(String message) {
+        this.message = message;
+    }
 }
