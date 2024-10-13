@@ -69,6 +69,7 @@ public class WebSecurityConfig {
             // 4. 配置允许未认证的端点，其他端点需要认证
             .authorizeHttpRequests(auth ->
                     auth.requestMatchers("/api/auth/**").permitAll()  // 允许未认证访问 /api/auth/signup 和 /api/auth/signin
+                            .requestMatchers("/api/verification/**").permitAll()
                             .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/index.html").permitAll()
                             .requestMatchers("/api/test/all").permitAll()
                             .anyRequest().authenticated()// 其他所有请求需要认证

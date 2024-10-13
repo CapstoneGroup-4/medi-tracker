@@ -1,41 +1,46 @@
 package edu.capstone4.userserver.services;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
 
 @Service
 public class EmailService {
 
     @Autowired
-    private JavaMailSender mailSender;
+    HtmlTempleService htmlTempleService;
 
-    private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
+    @Value("${app.mail.senderEmail}")
+    private String senderEmail;
+
+    @Value("${app.mail.emailSubject}")
+    private String emailSubject;
+
+    @Value("${app.mail.apikey}")
+    private String apikey;
 
     // 发送验证码邮件的函数
-    public void sendVerificationCode(String to, String subject, String text) {
+    public void sendVerificationCode(String to, String verificationCode) {
         try {
-            // 创建邮件内容
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(text);
+            Resend resend = new Resend(apikey);
+            String emailContent = htmlTempleService.loadEmailTemplateWithCode(verificationCode);
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from(senderEmail)
+                    .to(to)
+                    .subject(emailSubject)
+                    .html(emailContent)
+                    .build();
 
-            // 记录日志：准备发送邮件
-            logger.info("Preparing to send email to: " + to + ", Subject: " + subject);
-
-            // 发送邮件
-            mailSender.send(message);
-
-            // 记录日志：发送邮件成功
-            logger.info("Verification code email sent successfully to: " + to);
-
-        } catch (Exception e) {
-            // 如果发送邮件失败，记录错误日志
-            logger.error("Error occurred while sending verification code email: " + e.getMessage());
+            CreateEmailResponse data = resend.emails().send(params);
+            System.out.println(data.getId());
+        } catch (IOException | ResendException e) {
+            throw new RuntimeException(e);
         }
     }
 }

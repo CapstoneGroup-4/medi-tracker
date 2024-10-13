@@ -1,13 +1,11 @@
 package edu.capstone4.userserver.models;
 
-import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 @Entity
 @Table(name = "users",
@@ -33,24 +31,43 @@ public class User {
     @Size(max = 120)
     private String password;
 
+    /**
+     * Gender:
+     * 0 - Male
+     * 1 - Female
+     * 2 - Other
+     */
+    @Schema(description = "Gender of the user: 0 - Male, 1 - Female, 2 - Other", example = "0")
+    @NotNull
+    private int gender;
+
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(  name = "user_roles",
+    @JoinTable(name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
-    // 新增的字段：存储验证码 (verificationCode)，储验证码生成时间 (codeGeneratedTime)
-    private String verificationCode;
+    // 可选字段：手机号、年龄、SIN 号码
+    @Size(max = 15)
+    private String phone;
 
-    private Instant codeGeneratedTime;
+    @Min(value = 0, message = "Age must be at least 0")
+    @Max(value = 120, message = "Age must be less than or equal to 120")
+    private Integer age;
+
+    @Size(max = 9)
+    private String sin;
+
+    private boolean enabled;
 
     public User() {
     }
 
-    public User(String username, String email, String password) {
+    public User(String username, String email, String password, int gender) {
         this.username = username;
         this.email = email;
         this.password = password;
+        this.gender = gender;
     }
 
     public Long getId() {
@@ -85,6 +102,39 @@ public class User {
         this.password = password;
     }
 
+    @NotNull
+    public int getGender() {
+        return gender;
+    }
+
+    public void setGender(@NotNull int gender) {
+        this.gender = gender;
+    }
+
+    public @Size(max = 15) String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(@Size(max = 15) String phone) {
+        this.phone = phone;
+    }
+
+    public @Min(value = 0, message = "Age must be at least 0") @Max(value = 120, message = "Age must be less than or equal to 120") Integer getAge() {
+        return age;
+    }
+
+    public void setAge(@Min(value = 0, message = "Age must be at least 0") @Max(value = 120, message = "Age must be less than or equal to 120") Integer age) {
+        this.age = age;
+    }
+
+    public @Size(max = 9) String getSin() {
+        return sin;
+    }
+
+    public void setSin(@Size(max = 9) String sin) {
+        this.sin = sin;
+    }
+
     public Set<Role> getRoles() {
         return roles;
     }
@@ -93,20 +143,11 @@ public class User {
         this.roles = roles;
     }
 
-    // 存储验证码和验证码的生成时间
-    public String getVerificationCode() {
-        return verificationCode;
+    public boolean isEnabled() {
+        return enabled;
     }
 
-    public void setVerificationCode(String verificationCode) {
-        this.verificationCode = verificationCode;
-    }
-
-    public Instant getCodeGeneratedTime() {
-        return codeGeneratedTime;
-    }
-
-    public void setCodeGeneratedTime(Instant codeGeneratedTime) {
-        this.codeGeneratedTime = codeGeneratedTime;
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 }
