@@ -49,6 +49,13 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.networknt</groupId>
+            <artifactId>json-schema-validator</artifactId>
+            <version>1.0.86</version>
+        </dependency>
+
+
 
         <!-- redis -->
         <dependency>
