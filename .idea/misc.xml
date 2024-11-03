@@ -4,8 +4,8 @@
   <component name="MavenProjectsManager">
     <option name="originalFiles">
       <list>
-        <option value="$PROJECT_DIR$/Chaincode/pom.xml" />
         <option value="$PROJECT_DIR$/Server/MediTrackerUserServer/pom.xml" />
+        <option value="$PROJECT_DIR$/Chaincode/pom.xml" />
       </list>
     </option>
   </component>
