@@ -1,14 +1,12 @@
 package edu.capstone4.userserver.services;
 
 import edu.capstone4.userserver.models.MedicalRecord;
+import edu.capstone4.userserver.models.Attachment;
+import edu.capstone4.userserver.models.User; // 添加User导入
+import edu.capstone4.userserver.models.Doctor; // 添加Doctor导入
 import edu.capstone4.userserver.repository.MedicalRecordRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.io.IOException;
-import edu.capstone4.userserver.models.Attachment;
 import org.springframework.web.multipart.MultipartFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +14,9 @@ import edu.capstone4.userserver.repository.AttachmentRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Date;
+import java.util.Optional;
+import java.io.IOException;
 
 @Service
 public class MedicalRecordService {
@@ -52,14 +53,13 @@ public class MedicalRecordService {
 
     private static final Logger logger = LoggerFactory.getLogger(MedicalRecordService.class);
 
-
-
     // 创建新的医疗记录
-    public MedicalRecord createRecord(MedicalRecord record) {
-        logger.info("Creating new medical record for patient: {}", record.getPatientName());
+    public MedicalRecord createRecord(MedicalRecord record, User patient, Doctor doctor) { // 修改createRecord方法
+        logger.info("Creating new medical record for patient: {}", patient.getUsername());
+        record.setPatient(patient); // 关联患者
+        record.setDoctor(doctor); // 关联医生
         return medicalRecordRepository.save(record);
     }
-
 
     // 查询所有未删除的医疗记录
     public Page<MedicalRecord> getAllRecords(Pageable pageable) {
@@ -139,5 +139,4 @@ public class MedicalRecordService {
             throw new IOException("File not found");
         }
     }
-
 }

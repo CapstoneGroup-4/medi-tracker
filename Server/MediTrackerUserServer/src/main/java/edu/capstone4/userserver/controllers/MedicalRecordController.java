@@ -1,30 +1,37 @@
 package edu.capstone4.userserver.controllers;
 
 import edu.capstone4.userserver.models.MedicalRecord;
+import edu.capstone4.userserver.models.User;
+import edu.capstone4.userserver.models.Doctor;
 import edu.capstone4.userserver.services.MedicalRecordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import java.util.Optional;
 import edu.capstone4.userserver.models.Attachment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.multipart.MultipartFile;
-import jakarta.validation.Valid;
-import java.io.IOException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
+import java.util.Optional;
+import java.io.IOException;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/medical-records")
 public class MedicalRecordController {
 
+    private final MedicalRecordService medicalRecordService;
+
+    // 使用构造函数注入
     @Autowired
-    private MedicalRecordService medicalRecordService;
+    public MedicalRecordController(MedicalRecordService medicalRecordService) {
+        this.medicalRecordService = medicalRecordService;
+    }
 
     // 初始化账本，仅限医生
     @PostMapping("/initialize")
@@ -37,9 +44,11 @@ public class MedicalRecordController {
     // 创建新医疗记录，仅限医生
     @PostMapping("/create")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<?> createRecord(@Valid @RequestBody MedicalRecord record) {
+    public ResponseEntity<?> createRecord(@Valid @RequestBody MedicalRecord record, @RequestParam Long patientId, @RequestParam Long doctorId) {
         try {
-            MedicalRecord createdRecord = medicalRecordService.createRecord(record);
+            User patient = new User(); // 假设这里用 patientId 从数据库查询得到 User
+            Doctor doctor = new Doctor(); // 假设这里用 doctorId 从数据库查询得到 Doctor
+            MedicalRecord createdRecord = medicalRecordService.createRecord(record, patient, doctor);
             return ResponseEntity.ok(createdRecord);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to create record: " + e.getMessage());

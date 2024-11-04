@@ -56,17 +56,23 @@ public class MedicalRecord {
     @OneToMany(mappedBy = "medicalRecord", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Attachment> attachments;
 
+    // 添加患者和医生的引用
+    @ManyToOne
+    @JoinColumn(name = "patient_id", nullable = false)
+    private User patient; // 患者（用户）
 
+    @ManyToOne
+    @JoinColumn(name = "doctor_id", nullable = false)
+    private Doctor doctor; // 医生
 
     // Getters and Setters (新添加attachments字段)
-
     public List<Attachment> getAttachments() {
         return attachments;
     }
+
     public void setAttachments(List<Attachment> attachments) {
         this.attachments = attachments;
     }
-
 
     public Long getId() {
         return id;
@@ -220,7 +226,6 @@ public class MedicalRecord {
         this.instructions = instructions;
     }
 
-
     public String getPrescribingDoctor() {
         return prescribingDoctor;
     }
@@ -235,5 +240,21 @@ public class MedicalRecord {
 
     public void setDeleted(Boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public User getPatient() {
+        return patient; // 返回患者
+    }
+
+    public void setPatient(User patient) {
+        this.patient = patient; // 设置患者
+    }
+
+    public Doctor getDoctor() {
+        return doctor; // 返回医生
+    }
+
+    public void setDoctor(Doctor doctor) {
+        this.doctor = doctor; // 设置医生
     }
 }

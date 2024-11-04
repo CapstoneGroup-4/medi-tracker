@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
-
 @Entity
 @Table(name = "users",
         uniqueConstraints = {
@@ -32,12 +31,6 @@ public class User {
     @Size(max = 120)
     private String password;
 
-    /**
-     * Gender:
-     * 0 - Male
-     * 1 - Female
-     * 2 - Other
-     */
     @Schema(description = "Gender of the user: 0 - Male, 1 - Female, 2 - Other", example = "0")
     @NotNull
     private int gender;
@@ -48,7 +41,6 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
-    // 可选字段：手机号、年龄、SIN 号码
     @Size(max = 15)
     private String phone;
 
@@ -61,6 +53,7 @@ public class User {
 
     private boolean enabled;
 
+    // Default constructor
     public User() {
     }
 
@@ -71,6 +64,7 @@ public class User {
         this.gender = gender;
     }
 
+    // Getters and setters
     public Long getId() {
         return id;
     }
@@ -103,37 +97,12 @@ public class User {
         this.password = password;
     }
 
-    @NotNull
     public int getGender() {
         return gender;
     }
 
-    public void setGender(@NotNull int gender) {
+    public void setGender(int gender) {
         this.gender = gender;
-    }
-
-    public @Size(max = 15) String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(@Size(max = 15) String phone) {
-        this.phone = phone;
-    }
-
-    public @Min(value = 0, message = "Age must be at least 0") @Max(value = 120, message = "Age must be less than or equal to 120") Integer getAge() {
-        return age;
-    }
-
-    public void setAge(@Min(value = 0, message = "Age must be at least 0") @Max(value = 120, message = "Age must be less than or equal to 120") Integer age) {
-        this.age = age;
-    }
-
-    public @Size(max = 9) String getSin() {
-        return sin;
-    }
-
-    public void setSin(@Size(max = 9) String sin) {
-        this.sin = sin;
     }
 
     public Set<Role> getRoles() {
@@ -142,6 +111,30 @@ public class User {
 
     public void setRoles(Set<Role> roles) {
         this.roles = roles;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public Integer getAge() {
+        return age;
+    }
+
+    public void setAge(Integer age) {
+        this.age = age;
+    }
+
+    public String getSin() {
+        return sin;
+    }
+
+    public void setSin(String sin) {
+        this.sin = sin;
     }
 
     public boolean isEnabled() {

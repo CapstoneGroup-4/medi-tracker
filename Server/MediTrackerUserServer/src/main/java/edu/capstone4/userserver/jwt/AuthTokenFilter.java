@@ -33,11 +33,12 @@ public class AuthTokenFilter extends OncePerRequestFilter {
       throws ServletException, IOException {
     // 添加日志记录请求路径
     logger.debug("Entering JWT Filter for request: " + request.getRequestURI());
-    // Skip JWT validation for signup endpoint
-    if (request.getServletPath().equals("/api/auth/signup")) {
+    // Skip JWT validation for signup endpoint 跳过特定路径
+    if (request.getServletPath().equals("/api/auth/")) {
       filterChain.doFilter(request, response);
       return;
     }
+
 
     try {
       String jwt = parseJwt(request);
