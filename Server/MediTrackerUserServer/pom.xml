@@ -116,6 +116,18 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>production</id>
+            <properties>
+                <!--suppress UnresolvedMavenProperty -->
+                <MYSQL_PASS>${env.MYSQL_PASS}</MYSQL_PASS>
+                <!--suppress UnresolvedMavenProperty -->
+                <REDIS_PASS>${env.REDIS_PASS}</REDIS_PASS>
+            </properties>
+        </profile>
+    </profiles>
+
     <build>
         <plugins>
             <plugin>
