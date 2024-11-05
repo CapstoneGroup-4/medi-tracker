@@ -20,9 +20,9 @@ public class SetupDataLoader implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) throws Exception {
-        createRoleIfNotFound(ERole.ROLE_USER);
-        createRoleIfNotFound(ERole.ROLE_ADMIN);
-        createRoleIfNotFound(ERole.ROLE_DOCTOR);
+        createRoleIfNotFound(ERole.USER);
+        createRoleIfNotFound(ERole.ADMIN);
+        createRoleIfNotFound(ERole.DOCTOR);
     }
 
     private void createRoleIfNotFound(ERole role) {

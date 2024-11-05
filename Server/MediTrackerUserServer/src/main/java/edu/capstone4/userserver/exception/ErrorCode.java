@@ -8,6 +8,7 @@ public enum ErrorCode {
     DOCTOR_EXIST(10005, "Error: Doctor already exist!"),
     USER_NOT_FOUND(10006, "Error: User not found!"),
     ROLE_NOT_FOUND(10007, "Error: Role is not found."),
+    ROLE_CANNOT_SET_ADMIN(10008, "Error: Cannot set role to admin."),
     ;
 
 

@@ -21,7 +21,6 @@ import edu.capstone4.userserver.payload.response.BaseResponse;
 import edu.capstone4.userserver.payload.response.JwtResponse;
 import edu.capstone4.userserver.payload.response.SignupResponse;
 import edu.capstone4.userserver.repository.DoctorRepository;
-import edu.capstone4.userserver.repository.RoleRepository;
 import edu.capstone4.userserver.repository.UserRepository;
 import edu.capstone4.userserver.jwt.JwtUtils;
 import edu.capstone4.userserver.services.UserDetailsImpl;
@@ -148,7 +147,7 @@ public class AuthController {
 
         userRepository.save(user);
 
-        if (ERole.ROLE_USER.equals(role.getName())) {
+        if (ERole.USER.equals(role.getName())) {
             // 生成验证码
             String verificationCode = verificationCodeService.generateCode();
             verificationCodeService.saveCode(user.getEmail(), verificationCode);

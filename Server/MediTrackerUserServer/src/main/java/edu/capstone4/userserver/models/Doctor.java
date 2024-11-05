@@ -8,8 +8,7 @@ import jakarta.validation.constraints.Size;
 @Table(name = "doctors",
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = "personalId"),
-                @UniqueConstraint(columnNames = "user_id"),
-                @UniqueConstraint(columnNames = "personalId")
+                @UniqueConstraint(columnNames = "user_id")
         })
 public class Doctor {
     @Id
@@ -46,10 +45,12 @@ public class Doctor {
 
     private String membership;
 
+    // Default constructor
+    public Doctor() {
+    }
 
     public Doctor(String professionalId, String personalId, String license, String licenseAuthority,
                   String jobTitle, String specialization, String clinicName) {
-        super();
         this.professionalId = professionalId;
         this.personalId = personalId;
         this.license = license;
@@ -59,9 +60,7 @@ public class Doctor {
         this.clinicName = clinicName;
     }
 
-    public Doctor() {
-    }
-
+    // Getters and setters
     public Long getId() {
         return id;
     }
@@ -78,59 +77,59 @@ public class Doctor {
         this.user = user;
     }
 
-    public @NotBlank @Size(max = 20) String getProfessionalId() {
+    public String getProfessionalId() {
         return professionalId;
     }
 
-    public void setProfessionalId(@NotBlank @Size(max = 20) String professionalId) {
+    public void setProfessionalId(String professionalId) {
         this.professionalId = professionalId;
     }
 
-    public @NotBlank @Size(max = 20) String getPersonalId() {
+    public String getPersonalId() {
         return personalId;
     }
 
-    public void setPersonalId(@NotBlank @Size(max = 20) String personalId) {
+    public void setPersonalId(String personalId) {
         this.personalId = personalId;
     }
 
-    public @NotBlank @Size(max = 20) String getLicense() {
+    public String getLicense() {
         return license;
     }
 
-    public void setLicense(@NotBlank @Size(max = 20) String license) {
+    public void setLicense(String license) {
         this.license = license;
     }
 
-    public @NotBlank String getLicenseAuthority() {
+    public String getLicenseAuthority() {
         return licenseAuthority;
     }
 
-    public void setLicenseAuthority(@NotBlank String licenseAuthority) {
+    public void setLicenseAuthority(String licenseAuthority) {
         this.licenseAuthority = licenseAuthority;
     }
 
-    public @NotBlank String getJobTitle() {
+    public String getJobTitle() {
         return jobTitle;
     }
 
-    public void setJobTitle(@NotBlank String jobTitle) {
+    public void setJobTitle(String jobTitle) {
         this.jobTitle = jobTitle;
     }
 
-    public @NotBlank String getSpecialization() {
+    public String getSpecialization() {
         return specialization;
     }
 
-    public void setSpecialization(@NotBlank String specialization) {
+    public void setSpecialization(String specialization) {
         this.specialization = specialization;
     }
 
-    public @NotBlank String getClinicName() {
+    public String getClinicName() {
         return clinicName;
     }
 
-    public void setClinicName(@NotBlank String clinicName) {
+    public void setClinicName(String clinicName) {
         this.clinicName = clinicName;
     }
 

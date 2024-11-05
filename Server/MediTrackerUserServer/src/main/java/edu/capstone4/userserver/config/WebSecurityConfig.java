@@ -70,14 +70,18 @@ public class WebSecurityConfig {
                     auth.requestMatchers("/api/auth/**").permitAll()  // 允许未认证访问 /api/auth/signup 和 /api/auth/signin
                             .requestMatchers("/api/verification/**").permitAll()
                             .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/index.html").permitAll()
+
+                            // 5. 基于角色的授权控制
+                            .requestMatchers("/api/doctor/**").hasRole("DOCTOR") // 仅医生可以访问 /api/doctor/** 端点
+                            .requestMatchers("/api/patient/**").hasRole("PATIENT") // 仅患者可以访问 /api/patient/** 端点
                             .anyRequest().authenticated()// 其他所有请求需要认证
             );
 
-    // 5. 配置认证提供者
+    // 6. 配置认证提供者
     http.authenticationProvider(authenticationProvider());
-    // 6. 添加 JWT 过滤器，在 UsernamePasswordAuthenticationFilter 之前执行
+    // 7. 添加 JWT 过滤器，在 UsernamePasswordAuthenticationFilter 之前执行
     http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
-    // 7. 构建配置
+    // 8. 构建配置
     return http.build();
   }
 }
