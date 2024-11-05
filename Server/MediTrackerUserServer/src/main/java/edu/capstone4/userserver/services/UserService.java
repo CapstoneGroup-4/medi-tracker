@@ -1,16 +1,23 @@
 package edu.capstone4.userserver.services;
+
 import edu.capstone4.userserver.models.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import edu.capstone4.userserver.repository.UserRepository;
 import edu.capstone4.userserver.exceptions.ResourceNotFoundException;
-
-
 import java.util.List;
+import edu.capstone4.userserver.exception.BusinessException;
+import edu.capstone4.userserver.exception.ErrorCode;
+import edu.capstone4.userserver.exception.RoleNotFoundException;
+import edu.capstone4.userserver.models.ERole;
+import edu.capstone4.userserver.models.Role;
+import edu.capstone4.userserver.repository.RoleRepository;
 
 @Service
 public class UserService {
+    @Autowired
+    private RoleRepository roleRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -52,5 +59,44 @@ public class UserService {
 
     public Boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    public void checkRegisterUserValidation(String email, String username) {
+        if (userRepository.existsByEmail(email)) {
+            throw new BusinessException(ErrorCode.USER_EMAIL_EXIST);
+        }
+
+        if (userRepository.existsByUsername(username)) {
+            throw new BusinessException(ErrorCode.USER_NAME_EXIST);
+        }
+    }
+
+    public Role assignRoleToUser(String strRoles) {
+        Role role;
+        if (strRoles == null) {
+            role = roleRepository.findByName(ERole.USER)
+                    .orElseThrow(() -> new RoleNotFoundException(ErrorCode.ROLE_NOT_FOUND));
+        } else {
+            switch (strRoles) {
+                case "ADMIN":
+                    throw new RoleNotFoundException(ErrorCode.ROLE_NOT_FOUND);
+                case "DOCTOR":
+                    role = roleRepository.findByName(ERole.DOCTOR)
+                            .orElseThrow(() -> new RoleNotFoundException(ErrorCode.ROLE_NOT_FOUND));
+                    break;
+                default:
+                    role = roleRepository.findByName(ERole.USER)
+                            .orElseThrow(() -> new RoleNotFoundException(ErrorCode.ROLE_NOT_FOUND));
+            }
+        }
+
+        return role;
+    }
+
+    public void activateUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        user.setEnabled(true);
+        userRepository.save(user);
     }
 }

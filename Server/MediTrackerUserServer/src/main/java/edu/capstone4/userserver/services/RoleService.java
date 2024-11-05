@@ -18,7 +18,7 @@ public class RoleService {
         return roleRepository.save(role);
     }
 
-    public Role getRoleById(Integer id) {
+    public Role getRoleById(Long id) {
         return roleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
     }
@@ -27,13 +27,13 @@ public class RoleService {
         return roleRepository.findAll();
     }
 
-    public Role updateRole(Integer id, Role role) {
+    public Role updateRole(Long id, Role role) {
         Role existingRole = getRoleById(id);
         existingRole.setName(role.getName());
         return roleRepository.save(existingRole);
     }
 
-    public void deleteRole(Integer id) {
+    public void deleteRole(Long id) {
         roleRepository.deleteById(id);
     }
 }
