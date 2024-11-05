@@ -18,6 +18,12 @@ public class BaseResponse<T> {
         this.code = code;
     }
 
+    public BaseResponse(String message, T data, int code) {
+        this.message = message;
+        this.data = data;
+        this.code = code;
+    }
+
     public String getMessage() {
         return message;
     }
