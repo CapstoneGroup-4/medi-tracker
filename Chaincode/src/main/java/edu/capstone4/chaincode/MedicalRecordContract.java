@@ -8,6 +8,10 @@ import org.hyperledger.fabric.shim.ChaincodeStub;
 
 import com.owlike.genson.Genson;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 @Contract(
         name = "MedicalRecordContract",
         info = @Info(
@@ -112,5 +116,96 @@ public class MedicalRecordContract implements ContractInterface {
         String medicalInfoJson = stub.getStringState(patientId);
 
         return (medicalInfoJson != null && !medicalInfoJson.isEmpty());
+    }
+
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
+    public String addMedicalRecord(final Context ctx, String patientId, MedicalRecord newRecord) {
+        ChaincodeStub stub = ctx.getStub();
+
+        // 检查患者信息是否存在
+        String medicalInfoJson = stub.getStringState(patientId);
+        if (medicalInfoJson == null || medicalInfoJson.isEmpty()) {
+            String errorMessage = String.format("Medical Record for Patient ID %s does not exist", patientId);
+            throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
+        }
+
+        // 反序列化现有的医疗信息
+        MedicalInfo medicalInfo = genson.deserialize(medicalInfoJson, MedicalInfo.class);
+
+        // 获取当前的医疗记录数组，并将新记录添加到数组中
+        MedicalRecord[] existingRecords = medicalInfo.getMedicalRecords();
+        MedicalRecord[] updatedRecords = Arrays.copyOf(existingRecords, existingRecords.length + 1);
+        updatedRecords[existingRecords.length] = newRecord;
+
+        // 更新医疗信息对象
+        medicalInfo = new MedicalInfo(medicalInfo.getPatientId(), medicalInfo.getPatientName(),
+                medicalInfo.getPatientGender(), medicalInfo.getPatientEmail(), updatedRecords);
+
+        // 序列化更新后的医疗信息并保存回账本
+        medicalInfoJson = genson.serialize(medicalInfo);
+        stub.putStringState(patientId, medicalInfoJson);
+
+        return medicalInfoJson;
+    }
+
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
+    public String updateMedicalRecord(final Context ctx, String patientId, String recordId, MedicalRecord updatedRecord) {
+        ChaincodeStub stub = ctx.getStub();
+
+        String medicalInfoJson = stub.getStringState(patientId);
+        if (medicalInfoJson == null || medicalInfoJson.isEmpty()) {
+            String errorMessage = String.format("Medical Record for Patient ID %s does not exist", patientId);
+            throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
+        }
+
+        MedicalInfo medicalInfo = genson.deserialize(medicalInfoJson, MedicalInfo.class);
+        MedicalRecord[] records = medicalInfo.getMedicalRecords();
+
+        boolean updated = false;
+        for (int i = 0; i < records.length; i++) {
+            if (records[i].getRecordID().equals(recordId)) {
+                records[i] = updatedRecord;
+                updated = true;
+                break;
+            }
+        }
+
+        if (!updated) {
+            String errorMessage = String.format("Medical Record with ID %s not found", recordId);
+            throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
+        }
+
+        medicalInfoJson = genson.serialize(medicalInfo);
+        stub.putStringState(patientId, medicalInfoJson);
+
+        return medicalInfoJson;
+    }
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
+    public String deleteMedicalRecord(final Context ctx, String patientId, String recordId) {
+        ChaincodeStub stub = ctx.getStub();
+
+        String medicalInfoJson = stub.getStringState(patientId);
+        if (medicalInfoJson == null || medicalInfoJson.isEmpty()) {
+            String errorMessage = String.format("Medical Record for Patient ID %s does not exist", patientId);
+            throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
+        }
+
+        MedicalInfo medicalInfo = genson.deserialize(medicalInfoJson, MedicalInfo.class);
+        List<MedicalRecord> recordList = new ArrayList<>(Arrays.asList(medicalInfo.getMedicalRecords()));
+        boolean removed = recordList.removeIf(r -> r.getRecordID().equals(recordId));
+
+        if (!removed) {
+            String errorMessage = String.format("Medical Record with ID %s not found", recordId);
+            throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
+        }
+
+        MedicalRecord[] updatedRecords = recordList.toArray(new MedicalRecord[0]);
+        medicalInfo = new MedicalInfo(patientId, medicalInfo.getPatientName(), medicalInfo.getPatientGender(),
+                medicalInfo.getPatientEmail(), updatedRecords);
+
+        medicalInfoJson = genson.serialize(medicalInfo);
+        stub.putStringState(patientId, medicalInfoJson);
+
+        return medicalInfoJson;
     }
 }
