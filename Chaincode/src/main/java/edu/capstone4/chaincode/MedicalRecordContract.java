@@ -13,7 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @Contract(
-        name = "MedicalRecordContract",
+        name = "MediTracker",
         info = @Info(
                 title = "Medical Record Management",
                 description = "A contract for managing patient medical records",

@@ -24,7 +24,16 @@ public class MedicalInfo {
     private final String patientEmail;
 
     @Property()
-    private final MedicalRecord[] medicalRecords; // Assuming MedicalRecord is correctly defined somewhere
+    private final MedicalRecord[] medicalRecords;
+
+    public MedicalInfo() {
+        this.patientId = "";
+        this.patientName = "";
+        this.patientGender = "";
+        this.patientEmail = "";
+        this.medicalRecords = new MedicalRecord[0];
+    }
+
 
     public MedicalInfo(@JsonProperty("patientId") String patientId,
                        @JsonProperty("patientName") String patientName,

@@ -21,14 +21,22 @@ public class MedicalRecord {
     private final String clinic;
 
     @Property()
-    private final String detail; // 新增的详情字段
+    private final String detail;
+
+    public MedicalRecord() {
+        this.recordID = "";
+        this.date = "";
+        this.doctor = "";
+        this.clinic = "";
+        this.detail = "";
+    }
 
     public MedicalRecord(String recordID, String date, String doctor, String clinic, String detail) {
         this.recordID = recordID;
         this.date = date;
         this.doctor = doctor;
         this.clinic = clinic;
-        this.detail = detail; // 初始化新字段
+        this.detail = detail;
     }
 
     public String getRecordID() {
