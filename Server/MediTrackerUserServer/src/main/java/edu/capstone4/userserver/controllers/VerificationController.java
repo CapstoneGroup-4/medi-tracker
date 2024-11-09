@@ -1,9 +1,10 @@
 package edu.capstone4.userserver.controllers;
 
-import edu.capstone4.userserver.config.ErrorCodeConfig;
-import edu.capstone4.userserver.properties.ErrorCodeProperties;
+import edu.capstone4.userserver.exception.BusinessException;
+import edu.capstone4.userserver.exception.ErrorCode;
 import edu.capstone4.userserver.payload.response.BaseResponse;
 import edu.capstone4.userserver.services.EmailService;
+import edu.capstone4.userserver.services.UserService;
 import edu.capstone4.userserver.services.VerificationCodeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,10 +26,10 @@ public class VerificationController {
     EmailService emailService;
 
     @Autowired
-    private VerificationCodeService verificationCodeService;
+    UserService userService;
 
     @Autowired
-    private ErrorCodeProperties errorCodeProperties;
+    private VerificationCodeService verificationCodeService;
 
     @PostMapping("/send-code")
     public ResponseEntity<?> sendCode(@RequestParam String email) {
@@ -40,16 +41,22 @@ public class VerificationController {
     }
 
     @PostMapping("/verify-code")
-    public ResponseEntity<?>  verifyCode(@RequestParam String email, @RequestParam String code) {
-        boolean isValid = verificationCodeService.verifyCode(email, code);
+    public ResponseEntity<?> verifyCode(@RequestParam String email, @RequestParam String code) {
 
-        if (isValid) {
-            verificationCodeService.removeCode(email);
-            return ResponseEntity.ok(new BaseResponse<>("Verification code verify success"));
+        try {
+            boolean isValid = verificationCodeService.verifyCode(email, code);
+            if (isValid) {
+                verificationCodeService.removeCode(email);
+                // activate user
+                userService.activateUser(email);
+                return ResponseEntity.ok(new BaseResponse<>("Verification code verify success"));
+            } else {
+                throw new BusinessException(ErrorCode.CODE_VERIFY_FAILED);
+            }
+        } catch (BusinessException ex) {
+            BaseResponse<String> response = new BaseResponse<>(ex.getMessage(), ex.getErrorCode().getCode());
+            return ResponseEntity.badRequest().body(response);
         }
-
-        ErrorCodeConfig errorCodeConfig = errorCodeProperties.getCode("code-verify-failed");
-        return ResponseEntity.ok(new BaseResponse<>(errorCodeConfig.getMessage(), errorCodeConfig.getCode()));
     }
 }
 
