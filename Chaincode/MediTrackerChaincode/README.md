@@ -16,7 +16,7 @@ java -version
 ```
 cd fabric-samples/
 ```
-把代码复制到这个目录下
+把MediTrackerChaincode代码复制到这个目录下
 
 ## 1.2 返回到test-network所在目录
 
@@ -72,7 +72,7 @@ export FABRIC_CFG_PATH=$PWD/../config/
 
 ```
 
-./network.sh deployCC -ccn MediTracker -ccp ../Chaincode/ -ccl java
+./network.sh deployCC -ccn MediTracker -ccp ../MediTrackerChaincode/ -ccl java
 
 ```
 
@@ -80,10 +80,10 @@ export FABRIC_CFG_PATH=$PWD/../config/
 ### 2.2.1 创建链码包
 
 ```
-peer lifecycle chaincode package MediTracker.tar.gz --path ../Chaincode/ --lang java --label MediTracker_1.0
+peer lifecycle chaincode package MediTracker.tar.gz --path ../MediTrackerChaincode/ --lang java --label MediTracker_1.0
 ```
 
-命令解释：此命令将在当前目录中创建一个名为 meditracker.tar.gz的软件包。–lang标签用于指定链码语言，–path标签提供智能合约代码的位置，该路径必须是标准路径或相对于当前工作目录的路径，–label标签用于指定一个链码标签，该标签将在安装链码后对其进行标识。建议您的标签包含链码名称和版本。
+命令解释：此命令将在当前目录中创建一个名为 MediTracker.tar.gz的软件包。–lang标签用于指定链码语言，–path标签提供智能合约代码的位置，该路径必须是标准路径或相对于当前工作目录的路径，–label标签用于指定一个链码标签，该标签将在安装链码后对其进行标识。建议您的标签包含链码名称和版本。
 
 现在，我们已经创建了链码包，我们可以在测试网络的对等节点上安装链码。
 
