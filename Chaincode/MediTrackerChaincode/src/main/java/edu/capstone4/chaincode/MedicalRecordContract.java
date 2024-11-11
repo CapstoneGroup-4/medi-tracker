@@ -34,42 +34,38 @@ public class MedicalRecordContract implements ContractInterface {
 
     private enum MedicalRecordErrors {
         RECORD_NOT_FOUND,
-        RECORD_ALREADY_EXISTS
+        RECORD_ALREADY_EXISTS,
+
+        NO_PERMISSION
     }
 
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void initLedger(final Context ctx) {
+    // only for testing
+    public String initLedger(final Context ctx) {
         ChaincodeStub stub = ctx.getStub();
+        ArrayList<String> permission1 = new ArrayList<>(List.of("Dr.Smith_PrivateKey"));
+        ArrayList<String> permission2 = new ArrayList<>(List.of("Dr.Jones_PrivateKey"));
 
-        MedicalRecord[] records = new MedicalRecord[]{
-                new MedicalRecord("record1", "2021-01-01", "Dr. Smith", "Clinic A", "Annual check-up"),
-                new MedicalRecord("record2", "2021-02-01", "Dr. Jones", "Clinic B", "Follow-up visit")
-        };
+        ArrayList<MedicalRecord> records = new ArrayList<>();
+        records.add( new MedicalRecord("record1", "2021-01-01", "Dr. Smith", "Clinic A", "Annual check-up",0,"test", permission1));
+        records.add( new MedicalRecord("record2", "2021-02-01", "Dr. Jones", "Clinic B", "Follow-up visit",0,"test", permission2));
 
-        MedicalInfo medicalInfo = new MedicalInfo("001", "John Doe", "M", "john.doe@example.com", records);
-        String json = genson.serialize(medicalInfo);
-        stub.putStringState("001", json);
-    }
+        MedicalInfo medicalInfo1 = new MedicalInfo("001", "John Doe", "M", "john.doe@example.com", 0,"test", "patient001__PrivateKey", records);
+        MedicalInfo medicalInfo2 = new MedicalInfo("002", "Tom C", "M", "Tome.c@example.com", 0,"test", "patient002__PrivateKey", records);
 
-    @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String createMedicalInfo(final Context ctx, String patientId, String patientName,
-                                    String patientGender, String patientEmail, MedicalRecord[] records) {
-        ChaincodeStub stub = ctx.getStub();
+        String json1 = genson.serialize(medicalInfo1);
+        stub.putStringState("001", json1);
+        String json2 = genson.serialize(medicalInfo2);
+        stub.putStringState("002", json2);
 
-        if (medicalRecordExists(ctx, patientId)) {
-            String errorMessage = String.format("Medical Record for Patient ID %s already exists", patientId);
-            throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_ALREADY_EXISTS.toString());
-        }
 
-        MedicalInfo medicalInfo = new MedicalInfo(patientId, patientName, patientGender, patientEmail, records);
-        String medicalInfoJson = genson.serialize(medicalInfo);
-        stub.putStringState(patientId, medicalInfoJson);
+        return medicalInfo1.toString() + '\n' + medicalInfo2.toString();
 
-        return medicalInfoJson;
     }
 
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public MedicalInfo readMedicalInfo(final Context ctx, final String patientId) {
+    // only the patient has access to all medical records
+    public String readMedicalInfo(final Context ctx, final String patientId, final String patientPrivateKey) {
         ChaincodeStub stub = ctx.getStub();
         String medicalInfoJson = stub.getStringState(patientId);
 
@@ -78,36 +74,94 @@ public class MedicalRecordContract implements ContractInterface {
             throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
         }
 
-        return genson.deserialize(medicalInfoJson, MedicalInfo.class);
+        MedicalInfo medicalInfo = genson.deserialize(medicalInfoJson, MedicalInfo.class);
+
+        if(medicalInfo.getPatientPrivateKey().equals(patientPrivateKey)){
+            return medicalInfo.toString();
+        }else{
+            String errorMessage = String.format("You have on permission of access to records for Patient ID %s", patientId);
+            throw new ChaincodeException(errorMessage, MedicalRecordErrors.NO_PERMISSION.toString());
+        }
     }
 
     @Transaction(intent = Transaction.TYPE.SUBMIT)
+    public String createMedicalInfo(final Context ctx, String patientId, String patientName,
+                                    String patientGender, String patientEmail, String patientPrivateKey,
+                                    ArrayList<MedicalRecord> records) {
+        ChaincodeStub stub = ctx.getStub();
+
+        if (medicalRecordExists(ctx, patientId)) {
+            String errorMessage = String.format("Medical Record for Patient ID %s already exists", patientId);
+            throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_ALREADY_EXISTS.toString());
+        }
+
+        MedicalInfo medicalInfo = new MedicalInfo(patientId, patientName, patientGender, patientEmail, 0, "original",patientPrivateKey, records);
+        String medicalInfoJson = genson.serialize(medicalInfo);
+        stub.putStringState(patientId, medicalInfoJson);
+
+        return medicalInfoJson;
+    }
+
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
+    // only the patient has access to all medical records
     public String updateMedicalInfo(final Context ctx, String patientId, String patientName,
-                                    String patientGender, String patientEmail, MedicalRecord[] records) {
+                                    String patientGender, String patientEmail,
+                                    String patientPrivateKey, ArrayList<MedicalRecord> records) {
         ChaincodeStub stub = ctx.getStub();
+        String medicalInfoJson = stub.getStringState(patientId);
 
-        if (!medicalRecordExists(ctx, patientId)) {
+        if (medicalInfoJson == null || medicalInfoJson.isEmpty()) {
             String errorMessage = String.format("Medical Record for Patient ID %s does not exist", patientId);
             throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
         }
 
-        MedicalInfo updatedInfo = new MedicalInfo(patientId, patientName, patientGender, patientEmail, records);
-        String updatedInfoJson = genson.serialize(updatedInfo);
-        stub.putStringState(patientId, updatedInfoJson);
+        MedicalInfo medicalInfo = genson.deserialize(medicalInfoJson, MedicalInfo.class);
 
-        return updatedInfoJson;
+        if(medicalInfo.getPatientPrivateKey().equals(patientPrivateKey)){
+
+            deleteMedicalInfo(ctx, patientId,patientPrivateKey);
+
+            MedicalInfo updatedInfo = new MedicalInfo(patientId, patientName, patientGender, patientEmail,
+                    medicalInfo.getMedicalVersion() + 1, "updated", patientPrivateKey,records);
+            String updatedInfoJson = genson.serialize(updatedInfo);
+            stub.putStringState(patientId, updatedInfoJson);
+
+            return updatedInfoJson;
+        }else{
+            String errorMessage = String.format("You have on permission of access to records for Patient ID %s", patientId);
+            throw new ChaincodeException(errorMessage, MedicalRecordErrors.NO_PERMISSION.toString());
+        }
+
     }
 
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public void deleteMedicalInfo(final Context ctx, final String patientId) {
+    // only the patient has access to all medical records
+    public void deleteMedicalInfo(final Context ctx, final String patientId, final String patientPrivateKey ) {
         ChaincodeStub stub = ctx.getStub();
+        String medicalInfoJson = stub.getStringState(patientId);
 
-        if (!medicalRecordExists(ctx, patientId)) {
+        if (medicalInfoJson == null || medicalInfoJson.isEmpty()) {
             String errorMessage = String.format("Medical Record for Patient ID %s does not exist", patientId);
             throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
         }
 
-        stub.delState(patientId);
+        MedicalInfo medicalInfo = genson.deserialize(medicalInfoJson, MedicalInfo.class);
+
+        if(medicalInfo.getPatientPrivateKey().equals(patientPrivateKey)){
+
+            stub.delState(patientId);
+
+            String deletedPatientId = patientId + "_DELETED";
+            medicalInfo.setPatientId(deletedPatientId);
+            medicalInfo.setComment("deleted");
+
+            String deletedInfoJson = genson.serialize(medicalInfo);
+            stub.putStringState(deletedPatientId, deletedInfoJson);
+
+        }else{
+            String errorMessage = String.format("You have on permission of access to records for Patient ID %s", patientId);
+            throw new ChaincodeException(errorMessage, MedicalRecordErrors.NO_PERMISSION.toString());
+        }
     }
 
     @Transaction(intent = Transaction.TYPE.EVALUATE)
@@ -119,93 +173,139 @@ public class MedicalRecordContract implements ContractInterface {
     }
 
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String addMedicalRecord(final Context ctx, String patientId, MedicalRecord newRecord) {
+    public String addMedicalRecord(final Context ctx, String patientId, final String permissionPrivateKey,MedicalRecord newRecord) {
         ChaincodeStub stub = ctx.getStub();
-
-        // 检查患者信息是否存在
         String medicalInfoJson = stub.getStringState(patientId);
+
         if (medicalInfoJson == null || medicalInfoJson.isEmpty()) {
             String errorMessage = String.format("Medical Record for Patient ID %s does not exist", patientId);
             throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
         }
 
-        // 反序列化现有的医疗信息
         MedicalInfo medicalInfo = genson.deserialize(medicalInfoJson, MedicalInfo.class);
 
-        // 获取当前的医疗记录数组，并将新记录添加到数组中
-        MedicalRecord[] existingRecords = medicalInfo.getMedicalRecords();
-        MedicalRecord[] updatedRecords = Arrays.copyOf(existingRecords, existingRecords.length + 1);
-        updatedRecords[existingRecords.length] = newRecord;
+        if(medicalInfo.getMedicalRecords().contains(newRecord)){
+            String errorMessage = String.format("Medical Record for Record ID %s already exists", newRecord.getRecordId());
+            throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_ALREADY_EXISTS.toString());
+        }
 
-        // 更新医疗信息对象
-        medicalInfo = new MedicalInfo(medicalInfo.getPatientId(), medicalInfo.getPatientName(),
-                medicalInfo.getPatientGender(), medicalInfo.getPatientEmail(), updatedRecords);
+        if(medicalInfo.getPatientPrivateKey().equals(permissionPrivateKey)){
 
-        // 序列化更新后的医疗信息并保存回账本
-        medicalInfoJson = genson.serialize(medicalInfo);
-        stub.putStringState(patientId, medicalInfoJson);
+            medicalInfo.getMedicalRecords().add(newRecord);
 
-        return medicalInfoJson;
+            medicalInfoJson = genson.serialize(medicalInfo);
+            stub.putStringState(patientId, medicalInfoJson);
+
+            return medicalInfoJson;
+        }else{
+            String errorMessage = String.format("You have on permission of access to records for Patient ID %s", patientId);
+            throw new ChaincodeException(errorMessage, MedicalRecordErrors.NO_PERMISSION.toString());
+        }
+
+
     }
 
-    @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String updateMedicalRecord(final Context ctx, String patientId, String recordId, MedicalRecord updatedRecord) {
+    @Transaction(intent = Transaction.TYPE.EVALUATE)
+    // only the patient has access to all medical records
+    public MedicalRecord readMedicalRec(final Context ctx, String patientId, String recordId, final String permissionPrivateKey) {
         ChaincodeStub stub = ctx.getStub();
-
         String medicalInfoJson = stub.getStringState(patientId);
+
         if (medicalInfoJson == null || medicalInfoJson.isEmpty()) {
             String errorMessage = String.format("Medical Record for Patient ID %s does not exist", patientId);
             throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
         }
 
         MedicalInfo medicalInfo = genson.deserialize(medicalInfoJson, MedicalInfo.class);
-        MedicalRecord[] records = medicalInfo.getMedicalRecords();
 
-        boolean updated = false;
-        for (int i = 0; i < records.length; i++) {
-            if (records[i].getRecordID().equals(recordId)) {
-                records[i] = updatedRecord;
-                updated = true;
-                break;
+        for ( MedicalRecord record: medicalInfo.getMedicalRecords()) {
+            if(record.getRecordId().equals(recordId)){
+                if(medicalInfo.getPatientPrivateKey().equals(permissionPrivateKey) || record.getPermissions().contains(permissionPrivateKey)){
+                    return record;
+                }else {
+                    String errorMessage = String.format("You have on permission of access to the record for Record ID %s", recordId);
+                    throw new ChaincodeException(errorMessage, MedicalRecordErrors.NO_PERMISSION.toString());
+                }
             }
         }
 
-        if (!updated) {
-            String errorMessage = String.format("Medical Record with ID %s not found", recordId);
-            throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
-        }
+        String errorMessage = String.format("Medical Record for Record ID %s does not exist", recordId);
+        throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
 
-        medicalInfoJson = genson.serialize(medicalInfo);
-        stub.putStringState(patientId, medicalInfoJson);
-
-        return medicalInfoJson;
     }
-    @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String deleteMedicalRecord(final Context ctx, String patientId, String recordId) {
-        ChaincodeStub stub = ctx.getStub();
 
+
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
+    public String updateMedicalRecord(final Context ctx, String patientId, String recordId, String permissionPrivateKey,MedicalRecord updatedRecord) {
+        ChaincodeStub stub = ctx.getStub();
         String medicalInfoJson = stub.getStringState(patientId);
+
         if (medicalInfoJson == null || medicalInfoJson.isEmpty()) {
             String errorMessage = String.format("Medical Record for Patient ID %s does not exist", patientId);
             throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
         }
 
         MedicalInfo medicalInfo = genson.deserialize(medicalInfoJson, MedicalInfo.class);
-        List<MedicalRecord> recordList = new ArrayList<>(Arrays.asList(medicalInfo.getMedicalRecords()));
-        boolean removed = recordList.removeIf(r -> r.getRecordID().equals(recordId));
 
-        if (!removed) {
-            String errorMessage = String.format("Medical Record with ID %s not found", recordId);
+        for ( MedicalRecord record: medicalInfo.getMedicalRecords()) {
+            if(record.getRecordId().equals(recordId)){
+                if(medicalInfo.getPatientPrivateKey().equals(permissionPrivateKey) || record.getPermissions().contains(permissionPrivateKey)){
+
+                    deleteMedicalRecord(ctx,patientId,recordId,permissionPrivateKey);
+
+                    updatedRecord.setRecordVersion(record.getRecordVersion() + 1);
+                    updatedRecord.setComment("updated");
+
+                    addMedicalRecord(ctx,patientId,permissionPrivateKey,updatedRecord);
+
+                    return updatedRecord.toString();
+
+                }else {
+                    String errorMessage = String.format("You have on permission of access to the record for Record ID %s", recordId);
+                    throw new ChaincodeException(errorMessage, MedicalRecordErrors.NO_PERMISSION.toString());
+                }
+            }
+        }
+
+        String errorMessage = String.format("Medical Record for Record ID %s does not exist", recordId);
+        throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
+
+
+    }
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
+    public String deleteMedicalRecord(final Context ctx, String patientId, String recordId, String permissionPrivateKey) {
+        ChaincodeStub stub = ctx.getStub();
+        String medicalInfoJson = stub.getStringState(patientId);
+
+        if (medicalInfoJson == null || medicalInfoJson.isEmpty()) {
+            String errorMessage = String.format("Medical Record for Patient ID %s does not exist", patientId);
             throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
         }
 
-        MedicalRecord[] updatedRecords = recordList.toArray(new MedicalRecord[0]);
-        medicalInfo = new MedicalInfo(patientId, medicalInfo.getPatientName(), medicalInfo.getPatientGender(),
-                medicalInfo.getPatientEmail(), updatedRecords);
+        MedicalInfo medicalInfo = genson.deserialize(medicalInfoJson, MedicalInfo.class);
 
-        medicalInfoJson = genson.serialize(medicalInfo);
-        stub.putStringState(patientId, medicalInfoJson);
+        for ( MedicalRecord record: medicalInfo.getMedicalRecords()) {
+            if(record.getRecordId().equals(recordId)){
+                if(medicalInfo.getPatientPrivateKey().equals(permissionPrivateKey) || record.getPermissions().contains(permissionPrivateKey)){
 
-        return medicalInfoJson;
+                    medicalInfo.getMedicalRecords().remove(record);
+
+                    String deletedRecordId = recordId + "_DELETED";
+                    record.setRecordId(deletedRecordId);
+                    record.setComment("deleted");
+                    medicalInfo.getMedicalRecords().add(record);
+
+                    String updatedMedicalInfoJson = genson.serialize(medicalInfo);
+                    stub.putStringState(patientId, updatedMedicalInfoJson);
+                    return record.toString();
+                }else {
+                    String errorMessage = String.format("You have on permission of access to the record for Record ID %s", recordId);
+                    throw new ChaincodeException(errorMessage, MedicalRecordErrors.NO_PERMISSION.toString());
+                }
+            }
+        }
+
+        String errorMessage = String.format("Medical Record for Record ID %s does not exist", recordId);
+        throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
     }
 }
