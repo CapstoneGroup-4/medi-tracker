@@ -1,9 +1,8 @@
 package edu.capstone4.userserver.controllers;
 
 import edu.capstone4.userserver.models.MedicalRecord;
-import edu.capstone4.userserver.models.User;
-import edu.capstone4.userserver.models.Doctor;
 import edu.capstone4.userserver.services.MedicalRecordService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,9 +16,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
-import java.util.Optional;
 import java.io.IOException;
-import jakarta.validation.Valid;
+import java.util.Optional;
+import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/api/medical-records")
@@ -27,37 +26,45 @@ public class MedicalRecordController {
 
     private final MedicalRecordService medicalRecordService;
 
-    // 使用构造函数注入
     @Autowired
     public MedicalRecordController(MedicalRecordService medicalRecordService) {
         this.medicalRecordService = medicalRecordService;
     }
 
-    // 初始化账本，仅限医生
+    // 初始化账本，仅限医生 （测试使用）
+    private static final Logger logger = Logger.getLogger(MedicalRecordController.class.getName());
     @PostMapping("/initialize")
-    @PreAuthorize("hasRole('DOCTOR')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> initializeLedger() {
+        if (medicalRecordService.isLedgerInitialized()) {
+            logger.info("Attempt to initialize ledger when it is already initialized.");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Ledger already initialized.");
+        }
         medicalRecordService.initializeLedger();
+        logger.info("Ledger successfully initialized with sample data.");
         return ResponseEntity.ok("Ledger initialized with sample data.");
     }
+
 
     // 创建新医疗记录，仅限医生
     @PostMapping("/create")
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<?> createRecord(@Valid @RequestBody MedicalRecord record, @RequestParam Long patientId, @RequestParam Long doctorId) {
         try {
-            User patient = new User(); // 假设这里用 patientId 从数据库查询得到 User
-            Doctor doctor = new Doctor(); // 假设这里用 doctorId 从数据库查询得到 Doctor
-            MedicalRecord createdRecord = medicalRecordService.createRecord(record, patient, doctor);
-            return ResponseEntity.ok(createdRecord);
+            // 确保对嵌套的患者和医生对象进行了处理
+            if (record.getPatient() == null || record.getDoctor() == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Patient and Doctor information is required.");
+            }
+            String transactionResult = medicalRecordService.createRecordInChaincode(record, patientId, doctorId);
+            return ResponseEntity.ok("Record created successfully: " + transactionResult);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to create record: " + e.getMessage());
         }
     }
+
     // 获取所有未删除的医疗记录，仅限医生
     @GetMapping("/all")
     @PreAuthorize("hasRole('DOCTOR')")
-
     public ResponseEntity<Page<MedicalRecord>> getAllRecords(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -65,7 +72,7 @@ public class MedicalRecordController {
             @RequestParam(defaultValue = "asc") String sortDir) {
 
         Pageable pageable = PageRequest.of(page, size, sortDir.equals("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending());
-        Page<MedicalRecord> records = medicalRecordService.getAllRecords(pageable);
+        Page<MedicalRecord> records = medicalRecordService.getAllRecordsFromChaincode(pageable);
         return ResponseEntity.ok(records);
     }
 
@@ -73,27 +80,32 @@ public class MedicalRecordController {
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('DOCTOR') or hasRole('PATIENT')")
     public ResponseEntity<MedicalRecord> getRecordById(@PathVariable Long id) {
-        Optional<MedicalRecord> record = medicalRecordService.getRecordById(id);
+        Optional<MedicalRecord> record = medicalRecordService.getRecordByIdFromChaincode(id);
         return record.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     // 更新医疗记录，仅限医生
     @PutMapping("/update/{id}")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<MedicalRecord> updateRecord(@PathVariable Long id, @RequestBody MedicalRecord updatedRecord) {
-        MedicalRecord record = medicalRecordService.updateRecord(id, updatedRecord);
-        if (record == null) {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<String> updateRecord(@PathVariable Long id, @RequestBody MedicalRecord updatedRecord) {
+        try {
+            String transactionResult = medicalRecordService.updateRecordInChaincode(id, updatedRecord);
+            return ResponseEntity.ok("Record updated successfully: " + transactionResult);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to update record: " + e.getMessage());
         }
-        return ResponseEntity.ok(record);
     }
 
     // 逻辑删除医疗记录，仅限医生
     @DeleteMapping("/delete/{id}")
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<String> deleteRecord(@PathVariable Long id) {
-        medicalRecordService.deleteRecord(id);
-        return ResponseEntity.ok("Record deleted successfully.");
+        try {
+            String transactionResult = medicalRecordService.deleteRecordInChaincode(id);
+            return ResponseEntity.ok("Record deleted successfully: " + transactionResult);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to delete record: " + e.getMessage());
+        }
     }
 
     // 上传文件附件
