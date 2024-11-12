@@ -10,69 +10,100 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import java.util.Date;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 import java.util.List;
 
 @Entity
-@Table(name = "medical_records")
+@Table(name = "medical_records") // 确保数据库中有相应的表，或者删除注解
 public class MedicalRecord {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     // General Information
+    @NotBlank(message = "Patient name cannot be blank")
     private String patientName;
+
+    @NotBlank(message = "Gender cannot be blank")
     private String gender;
+
+    @NotNull(message = "Date of birth is required")
+    @Temporal(TemporalType.DATE) // 确保对 Date 类型的字段加上 Temporal 注解
     private Date dateOfBirth;
+
+    @NotBlank(message = "Record number cannot be blank")
     private String recordNo;
+
+    @NotBlank(message = "SIN cannot be blank")
     private String sin;
+
+    @NotBlank(message = "NIK cannot be blank")
     private String nik;
 
     // Diagnosis & Treatment
+    @NotBlank(message = "Primary diagnosis cannot be blank")
     private String primaryDiagnosis;
+
+    @NotNull(message = "Date of diagnosis is required")
     @Temporal(TemporalType.DATE)
     private Date dateOfDiagnosis;
+
     @Column(length = 1000)
     private String doctorsNotes;
+
     @Column(length = 1000)
     private String treatmentPlan;
+
     private String nextSteps;
+
+    @NotBlank(message = "Treatment status cannot be blank")
     private String treatmentStatus;
+
+    @NotBlank(message = "Physician name cannot be blank")
+    @Size(max = 100, message = "Physician name must be at most 100 characters")
     private String physicianName;
 
+
     // Prescribed Medication
+    @Size(max = 100, message = "Medication name must be at most 100 characters")
     private String medicationName;
+
+    @Size(max = 50, message = "Dosage must be at most 50 characters")
     private String dosage;
+
+    @Size(max = 50, message = "Frequency must be at most 50 characters")
     private String frequency;
+
+    @Size(max = 50, message = "Duration must be at most 50 characters")
     private String duration;
+
     @Column(length = 500)
     private String instructions;
+
+    @NotBlank(message = "Prescribing doctor cannot be blank")
+    @Size(max = 100, message = "Prescribing doctor must be at most 100 characters")
     private String prescribingDoctor;
 
     // Logical Deletion
     private Boolean isDeleted = false;
 
-    // 新增字段：文件附件列表
+    // 文件附件列表
     @OneToMany(mappedBy = "medicalRecord", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Attachment> attachments;
 
     // 添加患者和医生的引用
     @ManyToOne
     @JoinColumn(name = "patient_id", nullable = false)
-    private User patient; // 患者（用户）
+    private User patient;
 
     @ManyToOne
     @JoinColumn(name = "doctor_id", nullable = false)
-    private Doctor doctor; // 医生
+    private Doctor doctor;
 
-    // Getters and Setters (新添加attachments字段)
-    public List<Attachment> getAttachments() {
-        return attachments;
-    }
-
-    public void setAttachments(List<Attachment> attachments) {
-        this.attachments = attachments;
-    }
+    // Getters and Setters 保留
 
     public Long getId() {
         return id;
@@ -234,6 +265,7 @@ public class MedicalRecord {
         this.prescribingDoctor = prescribingDoctor;
     }
 
+
     public Boolean getDeleted() {
         return isDeleted;
     }
@@ -242,19 +274,27 @@ public class MedicalRecord {
         isDeleted = deleted;
     }
 
+    public List<Attachment> getAttachments() {
+        return attachments;
+    }
+
+    public void setAttachments(List<Attachment> attachments) {
+        this.attachments = attachments;
+    }
+
     public User getPatient() {
-        return patient; // 返回患者
+        return patient;
     }
 
     public void setPatient(User patient) {
-        this.patient = patient; // 设置患者
+        this.patient = patient;
     }
 
     public Doctor getDoctor() {
-        return doctor; // 返回医生
+        return doctor;
     }
 
     public void setDoctor(Doctor doctor) {
-        this.doctor = doctor; // 设置医生
+        this.doctor = doctor;
     }
 }
