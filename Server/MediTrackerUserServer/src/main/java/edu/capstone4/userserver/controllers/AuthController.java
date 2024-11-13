@@ -147,23 +147,32 @@ public class AuthController {
 
         userRepository.save(user);
 
-        if (ERole.USER.equals(role.getName())) {
-            // 生成验证码
-            String verificationCode = verificationCodeService.generateCode();
-            verificationCodeService.saveCode(user.getEmail(), verificationCode);
-            // 发布用户注册完成事件
-            eventPublisher.publishEvent(new RegistrationCompleteEvent(user.getEmail(), verificationCode));
-            return ResponseEntity.ok(new BaseResponse<>("User registered successfully! A verification code has been sent to your email."));
-        }
+//        if (ERole.USER.equals(role.getName())) {
+//            // 生成验证码
+//            String verificationCode = verificationCodeService.generateCode();
+//            verificationCodeService.saveCode(user.getEmail(), verificationCode);
+//            // 发布用户注册完成事件
+//            eventPublisher.publishEvent(new RegistrationCompleteEvent(user.getEmail(), verificationCode));
+//            return ResponseEntity.ok(new BaseResponse<>("User registered successfully! A verification code has been sent to your email."));
+//        }
 
-        // 其他用户角色需要进一步验证
-        User userDetails = userRepository.findByUsername(signUpRequest.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + signUpRequest.getUsername()));
+//        // 其他用户角色需要进一步验证
+//        User userDetails = userRepository.findByUsername(signUpRequest.getUsername())
+//                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + signUpRequest.getUsername()));
+//
+//        return ResponseEntity.ok(new BaseResponse<>(new SignupResponse(
+//                userDetails.getId(),
+//                userDetails.getUsername(),
+//                userDetails.getEmail())));
 
-        return ResponseEntity.ok(new BaseResponse<>(new SignupResponse(
-                userDetails.getId(),
-                userDetails.getUsername(),
-                userDetails.getEmail())));
+        // 为所有用户生成验证码（删除了角色判断，使所有用户注册后都生成验证码）
+        String verificationCode = verificationCodeService.generateCode();
+        verificationCodeService.saveCode(user.getEmail(), verificationCode);
+
+        // 发布用户注册完成事件
+        eventPublisher.publishEvent(new RegistrationCompleteEvent(user.getEmail(), verificationCode));
+
+        return ResponseEntity.ok(new BaseResponse<>("User registered successfully! A verification code has been sent to your email."));
     }
 
     @PostMapping("/doctor-signup")
@@ -202,17 +211,18 @@ public class AuthController {
         doctor.setUser(user);
         doctorRepository.save(doctor);
 
-        // 获取关联的 User email
-        String email = user.getEmail();
+//        // 获取关联的 User email
+//        String email = user.getEmail();
+//
+//        // 生成验证码
+//        String verificationCode = verificationCodeService.generateCode();
+//        verificationCodeService.saveCode(user.getEmail(), verificationCode);
+//
+//        // 发布用户注册完成事件
+//        eventPublisher.publishEvent(new RegistrationCompleteEvent(email, verificationCode));
 
-        // 生成验证码
-        String verificationCode = verificationCodeService.generateCode();
-        verificationCodeService.saveCode(user.getEmail(), verificationCode);
-
-        // 发布用户注册完成事件
-        eventPublisher.publishEvent(new RegistrationCompleteEvent(email, verificationCode));
-
-        return ResponseEntity.ok(new BaseResponse<>("Doctor registered successfully! A verification code has been sent to your email."));
+        // 删除了医生注册后再次生成验证码的逻辑，因为医生已经作为用户进行了验证
+         return ResponseEntity.ok(new BaseResponse<>("Doctor registered successfully! Awaiting admin activation."));
     }
 
 }
