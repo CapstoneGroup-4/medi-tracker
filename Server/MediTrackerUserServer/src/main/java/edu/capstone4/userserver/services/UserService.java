@@ -27,7 +27,17 @@ public class UserService {
 
     public User createUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setEnabled(false);  // 设置初始状态为未启用
         return userRepository.save(user);
+    }
+
+    public void activateUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        // 激活用户
+        user.setEnabled(true);
+        userRepository.save(user);
     }
 
     public User getUserById(Long id) {
@@ -81,9 +91,7 @@ public class UserService {
                 case "ADMIN":
                     throw new RoleNotFoundException(ErrorCode.ROLE_NOT_FOUND);
                 case "DOCTOR":
-                    role = roleRepository.findByName(ERole.DOCTOR)
-                            .orElseThrow(() -> new RoleNotFoundException(ErrorCode.ROLE_NOT_FOUND));
-                    break;
+                    throw new RoleNotFoundException(ErrorCode.ROLE_NOT_FOUND); // DOCTOR 角色不能直接赋予用户注册阶段
                 default:
                     role = roleRepository.findByName(ERole.USER)
                             .orElseThrow(() -> new RoleNotFoundException(ErrorCode.ROLE_NOT_FOUND));
@@ -93,10 +101,7 @@ public class UserService {
         return role;
     }
 
-    public void activateUser(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        user.setEnabled(true);
-        userRepository.save(user);
-    }
+
+
+
 }
