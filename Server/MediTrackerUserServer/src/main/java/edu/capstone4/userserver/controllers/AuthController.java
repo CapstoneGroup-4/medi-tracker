@@ -38,12 +38,18 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+
+    // 添加 logger 对象
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
     private VerificationCodeService verificationCodeService;
@@ -211,6 +217,15 @@ public class AuthController {
         doctor.setUser(user);
         doctorRepository.save(doctor);
 
+        // 在医生注册成功后添加日志记录
+        logger.info("Doctor registered: " + doctor.getId());
+        logger.info("User ID: {}, Professional ID: {}, Doctor saved successfully with ID: {}",
+                user.getId(), doctorSignupRequest.getProfessionalId(), doctor.getId());
+
+
+        // 删除了医生注册后再次生成验证码的逻辑，因为医生已经作为用户进行了验证
+        return ResponseEntity.ok(new BaseResponse<>("Doctor registered successfully! Awaiting admin activation."));
+    }
 //        // 获取关联的 User email
 //        String email = user.getEmail();
 //
@@ -221,8 +236,6 @@ public class AuthController {
 //        // 发布用户注册完成事件
 //        eventPublisher.publishEvent(new RegistrationCompleteEvent(email, verificationCode));
 
-        // 删除了医生注册后再次生成验证码的逻辑，因为医生已经作为用户进行了验证
-         return ResponseEntity.ok(new BaseResponse<>("Doctor registered successfully! Awaiting admin activation."));
-    }
+
 
 }
