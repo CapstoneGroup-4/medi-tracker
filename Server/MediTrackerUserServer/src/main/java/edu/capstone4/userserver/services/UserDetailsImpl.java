@@ -99,4 +99,18 @@ public class UserDetailsImpl implements UserDetails {
     UserDetailsImpl user = (UserDetailsImpl) o;
     return Objects.equals(id, user.id);
   }
+
+  // 在 UserDetailsImpl 类中添加一个字段，用于存储 User 对象
+  private User user;
+
+  public UserDetailsImpl(User user, Collection<? extends GrantedAuthority> authorities) {
+    this.user = user;
+    this.authorities = authorities;
+  }
+
+  // 添加 getUser() 方法
+  public User getUser() {
+    return user;
+  }
+
 }
