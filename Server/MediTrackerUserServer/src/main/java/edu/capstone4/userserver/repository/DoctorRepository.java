@@ -7,6 +7,10 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
+//public interface DoctorRepository extends JpaRepository<Doctor, Long> {
+//     Optional<Doctor> findByPersonalId(String personalId);
+//     boolean existsByPersonalId(String personalId);
+//}
 public interface DoctorRepository extends JpaRepository<Doctor, Long> {
 
      Optional<Doctor> findById(Long aLong);
