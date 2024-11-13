@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import edu.capstone4.userserver.repository.UserRepository;
-import edu.capstone4.userserver.exceptions.ResourceNotFoundException;
+import edu.capstone4.userserver.exception.ResourceNotFoundException;
 import java.util.List;
 import edu.capstone4.userserver.exception.BusinessException;
 import edu.capstone4.userserver.exception.ErrorCode;
