@@ -45,6 +45,9 @@ public class Doctor {
 
     private String membership;
 
+    @Column(name = "is_activated")
+    private boolean isActivated = false;
+
     // Default constructor
     public Doctor() {
     }
@@ -139,5 +142,13 @@ public class Doctor {
 
     public void setMembership(String membership) {
         this.membership = membership;
+    }
+
+    public boolean isActivated() {
+        return isActivated;
+    }
+
+    public void setActivated(boolean isActivated) {
+        this.isActivated = isActivated;
     }
 }
