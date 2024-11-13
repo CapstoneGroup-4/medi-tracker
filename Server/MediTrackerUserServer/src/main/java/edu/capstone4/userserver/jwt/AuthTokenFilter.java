@@ -2,6 +2,8 @@ package edu.capstone4.userserver.jwt;
 
 import java.io.IOException;
 
+import edu.capstone4.userserver.models.User;
+import edu.capstone4.userserver.services.UserDetailsImpl;
 import edu.capstone4.userserver.services.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -38,6 +40,19 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+        // 新增代码：检查激活状态
+        if (userDetails instanceof UserDetailsImpl) {
+          UserDetailsImpl userDetailsImpl = (UserDetailsImpl) userDetails;
+          User user = userDetailsImpl.getUser(); // 获取 User 实体
+
+          // 检查用户是否启用，医生是否已激活（如果用户有 Doctor 信息）
+          if (!user.isEnabled() || (user.getDoctor() != null && !user.getDoctor().isActivated())) {
+            logger.warn("User account is not active or doctor account is not activated: " + username);
+            filterChain.doFilter(request, response);
+            return; // 中止后续认证
+          }
+        }
         UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(
                 userDetails,
