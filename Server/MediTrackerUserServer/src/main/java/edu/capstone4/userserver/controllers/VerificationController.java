@@ -1,7 +1,7 @@
 package edu.capstone4.userserver.controllers;
 
-import edu.capstone4.userserver.exception.BusinessException;
-import edu.capstone4.userserver.exception.ErrorCode;
+import edu.capstone4.userserver.exceptions.BusinessException;
+import edu.capstone4.userserver.exceptions.ErrorCode;
 import edu.capstone4.userserver.payload.response.BaseResponse;
 import edu.capstone4.userserver.services.EmailService;
 import edu.capstone4.userserver.services.UserService;

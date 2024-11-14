@@ -2,7 +2,9 @@ package edu.capstone4.userserver.jwt;
 
 import java.io.IOException;
 
+import edu.capstone4.userserver.models.Doctor;
 import edu.capstone4.userserver.models.User;
+import edu.capstone4.userserver.services.DoctorService;
 import edu.capstone4.userserver.services.UserDetailsImpl;
 import edu.capstone4.userserver.services.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
@@ -28,6 +30,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
   @Autowired
   private UserDetailsServiceImpl userDetailsService;
 
+  private DoctorService doctorService;
+
   private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
 
   @Override
@@ -38,8 +42,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
       String jwt = parseJwt(request);
       if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
         String username = jwtUtils.getUserNameFromJwtToken(jwt);
+        Long userId = jwtUtils.getUserIdFromJwtToken(jwt);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        Doctor doctor = doctorService.getDoctorByUserId(userId);
 
         // 新增代码：检查激活状态
         if (userDetails instanceof UserDetailsImpl) {
@@ -47,12 +53,13 @@ public class AuthTokenFilter extends OncePerRequestFilter {
           User user = userDetailsImpl.getUser(); // 获取 User 实体
 
           // 检查用户是否启用，医生是否已激活（如果用户有 Doctor 信息）
-          if (!user.isEnabled() || (user.getDoctor() != null && !user.getDoctor().isActivated())) {
+          if (!user.isEnabled() || (doctor != null && !doctor.isActivated())) {
             logger.warn("User account is not active or doctor account is not activated: " + username);
             filterChain.doFilter(request, response);
             return; // 中止后续认证
           }
         }
+
         UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(
                 userDetails,

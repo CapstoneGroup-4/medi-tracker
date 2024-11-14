@@ -19,7 +19,7 @@ public class SignupRequest {
    * Docker
    * User
    */
-  @Schema(description = "Role of the user: ROLE_ADMIN (not allow to set), ROLE_DOCTOR, ROLE_USER (default)", example = "ROLE_USER")
+  @Schema(description = "Role of the user: ADMIN (not allow to set), DOCTOR, USER (default)", example = "USER")
   @NotBlank
   @Size(min = 1, max = 10)
   private String role;

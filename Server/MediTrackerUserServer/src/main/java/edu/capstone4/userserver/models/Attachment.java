@@ -9,19 +9,18 @@ public class Attachment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long fileId;
+    private Long id;
 
     private String fileName;
     private String fileType;
 
-    // 添加 fileData 字段，用于存储文件的二进制数据
-    @Lob
-    private byte[] fileData;
+    // Stores the IPFS hash for locating the file in IPFS
+    private String ipfsHash;
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date uploadDate;
 
-    // 多对一关系，将每个附件关联到一个医疗记录
+    // Many-to-One relationship with MedicalRecord
     @ManyToOne
     @JoinColumn(name = "medical_record_id")
     private MedicalRecord medicalRecord;
@@ -29,20 +28,20 @@ public class Attachment {
     public Attachment() {
     }
 
-    public Attachment(String fileName, String fileType, byte[] fileData, Date uploadDate) {
+    public Attachment(String fileName, String fileType, String ipfsHash, Date uploadDate) {
         this.fileName = fileName;
         this.fileType = fileType;
-        this.fileData = fileData;
+        this.ipfsHash = ipfsHash;
         this.uploadDate = uploadDate;
     }
 
     // Getters and Setters
-    public Long getFileId() {
-        return fileId;
+    public Long getId() {
+        return id;
     }
 
-    public void setFileId(Long fileId) {
-        this.fileId = fileId;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getFileName() {
@@ -61,12 +60,12 @@ public class Attachment {
         this.fileType = fileType;
     }
 
-    public byte[] getFileData() {
-        return fileData;
+    public String getIpfsHash() {
+        return ipfsHash;
     }
 
-    public void setFileData(byte[] fileData) {
-        this.fileData = fileData;
+    public void setIpfsHash(String ipfsHash) {
+        this.ipfsHash = ipfsHash;
     }
 
     public Date getUploadDate() {

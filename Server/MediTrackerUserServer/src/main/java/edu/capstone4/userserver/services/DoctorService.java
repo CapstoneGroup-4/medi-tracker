@@ -4,8 +4,8 @@ import edu.capstone4.userserver.models.Doctor;
 import edu.capstone4.userserver.models.User;
 import edu.capstone4.userserver.repository.DoctorRepository;
 import edu.capstone4.userserver.repository.UserRepository;
-import edu.capstone4.userserver.exception.BusinessException;
-import edu.capstone4.userserver.exception.ErrorCode;
+import edu.capstone4.userserver.exceptions.BusinessException;
+import edu.capstone4.userserver.exceptions.ErrorCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +17,16 @@ public class DoctorService {
 
     @Autowired
     private UserRepository userRepository;
+
+    public Doctor getDoctorByUserId(Long userId) {
+        return doctorRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.DOCTOR_NOT_FOUND));
+    }
+
+    public Doctor getDoctorById(Long id) {
+        return doctorRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.DOCTOR_NOT_FOUND));
+    }
 
     // 保存医生信息
     public Doctor saveDoctor(Doctor doctor, Long userId) {

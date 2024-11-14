@@ -4,7 +4,7 @@ import edu.capstone4.userserver.models.Role;
 import edu.capstone4.userserver.repository.RoleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import edu.capstone4.userserver.exception.ResourceNotFoundException;
+import edu.capstone4.userserver.exceptions.ResourceNotFoundException;
 
 import java.util.List;
 

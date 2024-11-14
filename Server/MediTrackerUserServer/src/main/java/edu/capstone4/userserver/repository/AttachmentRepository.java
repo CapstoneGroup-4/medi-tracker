@@ -22,7 +22,4 @@ public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
 
     // 根据文件名关键字查询附件
     List<Attachment> findByFileNameContaining(String keyword);
-
-    // 获取指定医疗记录 ID 和文件 ID 的附件
-    Optional<Attachment> findByMedicalRecordIdAndFileId(Long medicalRecordId, Long fileId);
 }

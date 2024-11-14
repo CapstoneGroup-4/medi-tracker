@@ -55,10 +55,6 @@ public class User {
 
     private boolean enabled;
 
-    // 新增 Doctor 关联
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
-    private Doctor doctor;
-
     // Default constructor
     public User() {
     }
@@ -150,13 +146,4 @@ public class User {
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
-
-    public Doctor getDoctor() {
-        return doctor;
-    }
-
-    public void setDoctor(Doctor doctor) {
-        this.doctor = doctor;
-    }
-
 }

@@ -1,4 +1,4 @@
-package edu.capstone4.userserver.exception;
+package edu.capstone4.userserver.exceptions;
 
 import edu.capstone4.userserver.payload.response.BaseResponse;
 import org.springframework.http.HttpStatus;

@@ -7,9 +7,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import edu.capstone4.userserver.events.registers.RegistrationCompleteEvent;
-import edu.capstone4.userserver.exception.BusinessException;
-import edu.capstone4.userserver.exception.ErrorCode;
-import edu.capstone4.userserver.exception.RoleNotFoundException;
+import edu.capstone4.userserver.exceptions.BusinessException;
+import edu.capstone4.userserver.exceptions.ErrorCode;
+import edu.capstone4.userserver.exceptions.RoleNotFoundException;
 import edu.capstone4.userserver.models.Doctor;
 import edu.capstone4.userserver.models.ERole;
 import edu.capstone4.userserver.models.Role;
@@ -38,18 +38,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-
-
-    // 添加 logger 对象
-    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
     private VerificationCodeService verificationCodeService;
@@ -153,38 +147,50 @@ public class AuthController {
 
         userRepository.save(user);
 
-//        if (ERole.USER.equals(role.getName())) {
-//            // 生成验证码
-//            String verificationCode = verificationCodeService.generateCode();
-//            verificationCodeService.saveCode(user.getEmail(), verificationCode);
-//            // 发布用户注册完成事件
-//            eventPublisher.publishEvent(new RegistrationCompleteEvent(user.getEmail(), verificationCode));
-//            return ResponseEntity.ok(new BaseResponse<>("User registered successfully! A verification code has been sent to your email."));
-//        }
+        if (ERole.USER.equals(role.getName())) {
+            // 生成验证码
+            String verificationCode = verificationCodeService.generateCode();
+            verificationCodeService.saveCode(user.getEmail(), verificationCode);
+            // 发布用户注册完成事件
+            eventPublisher.publishEvent(new RegistrationCompleteEvent(user.getEmail(), verificationCode));
+            return ResponseEntity.ok(new BaseResponse<>("User registered successfully! A verification code has been sent to your email."));
+        }
 
-//        // 其他用户角色需要进一步验证
-//        User userDetails = userRepository.findByUsername(signUpRequest.getUsername())
-//                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + signUpRequest.getUsername()));
-//
-//        return ResponseEntity.ok(new BaseResponse<>(new SignupResponse(
-//                userDetails.getId(),
-//                userDetails.getUsername(),
-//                userDetails.getEmail())));
+        // 其他用户角色需要进一步验证
+        User userDetails = userRepository.findByUsername(signUpRequest.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + signUpRequest.getUsername()));
 
-        // 为所有用户生成验证码（删除了角色判断，使所有用户注册后都生成验证码）
-        String verificationCode = verificationCodeService.generateCode();
-        verificationCodeService.saveCode(user.getEmail(), verificationCode);
-
-        // 发布用户注册完成事件
-        eventPublisher.publishEvent(new RegistrationCompleteEvent(user.getEmail(), verificationCode));
-
-        return ResponseEntity.ok(new BaseResponse<>("User registered successfully! A verification code has been sent to your email."));
+        return ResponseEntity.ok(new BaseResponse<>(new SignupResponse(
+                userDetails.getId(),
+                userDetails.getUsername(),
+                userDetails.getEmail())));
     }
 
     @PostMapping("/doctor-signup")
     public ResponseEntity<?> doctorVerification(@Valid @RequestBody DoctorSignupRequest doctorSignupRequest) {
         // 检查医生是否已存在
+        if (doctorRepository.existsByUserId(doctorSignupRequest.getUserId())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new BaseResponse<>(
+                            ErrorCode.DOCTOR_EXIST.getMessage(), ErrorCode.DOCTOR_EXIST.getCode()));
+        }
+
         if (doctorRepository.existsByPersonalId(doctorSignupRequest.getPersonalId())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new BaseResponse<>(
+                            ErrorCode.DOCTOR_EXIST.getMessage(), ErrorCode.DOCTOR_EXIST.getCode()));
+        }
+
+        if (doctorRepository.existsByLicense(doctorSignupRequest.getLicense())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new BaseResponse<>(
+                            ErrorCode.DOCTOR_EXIST.getMessage(), ErrorCode.DOCTOR_EXIST.getCode()));
+        }
+
+        if (doctorRepository.existsByProfessionalId(doctorSignupRequest.getProfessionalId())) {
             return ResponseEntity
                     .badRequest()
                     .body(new BaseResponse<>(
@@ -213,29 +219,23 @@ public class AuthController {
                 doctorSignupRequest.getClinicName()
         );
 
+        if (doctorSignupRequest.getMembership() != null) {
+            doctor.setMembership(doctorSignupRequest.getMembership());
+        }
+
         // 关联 User 对象
         doctor.setUser(user);
         doctorRepository.save(doctor);
 
-        // 在医生注册成功后添加日志记录
-        logger.info("Doctor registered: " + doctor.getId());
-        logger.info("User ID: {}, Professional ID: {}, Doctor saved successfully with ID: {}",
-                user.getId(), doctorSignupRequest.getProfessionalId(), doctor.getId());
+        // 获取关联的 User email
+        String email = user.getEmail();
+        // 生成验证码
+        String verificationCode = verificationCodeService.generateCode();
+        verificationCodeService.saveCode(user.getEmail(), verificationCode);
+        // 发布用户注册完成事件
+        eventPublisher.publishEvent(new RegistrationCompleteEvent(email, verificationCode));
 
-
-        // 删除了医生注册后再次生成验证码的逻辑，因为医生已经作为用户进行了验证
-        return ResponseEntity.ok(new BaseResponse<>("Doctor registered successfully! Awaiting admin activation."));
+        return ResponseEntity.ok(new BaseResponse<>("Doctor registered successfully! A verification code has been sent to your email."));
     }
-//        // 获取关联的 User email
-//        String email = user.getEmail();
-//
-//        // 生成验证码
-//        String verificationCode = verificationCodeService.generateCode();
-//        verificationCodeService.saveCode(user.getEmail(), verificationCode);
-//
-//        // 发布用户注册完成事件
-//        eventPublisher.publishEvent(new RegistrationCompleteEvent(email, verificationCode));
-
-
 
 }

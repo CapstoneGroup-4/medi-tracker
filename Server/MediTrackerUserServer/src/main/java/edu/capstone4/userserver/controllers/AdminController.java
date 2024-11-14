@@ -1,7 +1,7 @@
 package edu.capstone4.userserver.controllers;
 
-import edu.capstone4.userserver.exception.BusinessException;
-import edu.capstone4.userserver.exception.ErrorCode;
+import edu.capstone4.userserver.exceptions.BusinessException;
+import edu.capstone4.userserver.exceptions.ErrorCode;
 import edu.capstone4.userserver.models.Doctor;
 import edu.capstone4.userserver.repository.DoctorRepository;
 import org.springframework.beans.factory.annotation.Autowired;

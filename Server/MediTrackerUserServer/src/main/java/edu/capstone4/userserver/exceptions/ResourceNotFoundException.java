@@ -1,4 +1,4 @@
-package edu.capstone4.userserver.exception;
+package edu.capstone4.userserver.exceptions;
 
 public class ResourceNotFoundException extends RuntimeException {
     public ResourceNotFoundException(String message) {
