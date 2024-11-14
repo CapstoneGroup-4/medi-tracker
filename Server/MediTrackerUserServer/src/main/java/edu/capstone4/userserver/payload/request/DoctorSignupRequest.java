@@ -1,11 +1,12 @@
 package edu.capstone4.userserver.payload.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class DoctorSignupRequest {
 
-    @NotBlank
+    @NotNull
     private Long userId;
 
     @NotBlank
@@ -34,20 +35,69 @@ public class DoctorSignupRequest {
 
     private String membership;
 
-    public @NotBlank Long getUserId() {
+    // Getters and Setters
+    public Long getUserId() {
         return userId;
     }
 
-    public void setUserId(@NotBlank Long userId) {
+    public void setUserId(Long userId) {
         this.userId = userId;
     }
 
-    public @NotBlank @Size(max = 20) String getProfessionalId() {
+    public String getProfessionalId() {
         return professionalId;
     }
 
-    public void setProfessionalId(@NotBlank @Size(max = 20) String professionalId) {
+    public void setProfessionalId(String professionalId) {
         this.professionalId = professionalId;
+    }
+
+    public String getPersonalId() {
+        return personalId;
+    }
+
+    public void setPersonalId(String personalId) {
+        this.personalId = personalId;
+    }
+
+    public String getLicense() {
+        return license;
+    }
+
+    public void setLicense(String license) {
+        this.license = license;
+    }
+
+    public String getLicenseAuthority() {
+        return licenseAuthority;
+    }
+
+    public void setLicenseAuthority(String licenseAuthority) {
+        this.licenseAuthority = licenseAuthority;
+    }
+
+    public String getJobTitle() {
+        return jobTitle;
+    }
+
+    public void setJobTitle(String jobTitle) {
+        this.jobTitle = jobTitle;
+    }
+
+    public String getSpecialization() {
+        return specialization;
+    }
+
+    public void setSpecialization(String specialization) {
+        this.specialization = specialization;
+    }
+
+    public String getClinicName() {
+        return clinicName;
+    }
+
+    public void setClinicName(String clinicName) {
+        this.clinicName = clinicName;
     }
 
     public String getMembership() {
@@ -56,53 +106,5 @@ public class DoctorSignupRequest {
 
     public void setMembership(String membership) {
         this.membership = membership;
-    }
-
-    public @NotBlank @Size(max = 20) String getPersonalId() {
-        return personalId;
-    }
-
-    public void setPersonalId(@NotBlank @Size(max = 20) String personalId) {
-        this.personalId = personalId;
-    }
-
-    public @NotBlank @Size(max = 20) String getLicense() {
-        return license;
-    }
-
-    public void setLicense(@NotBlank @Size(max = 20) String license) {
-        this.license = license;
-    }
-
-    public @NotBlank String getLicenseAuthority() {
-        return licenseAuthority;
-    }
-
-    public void setLicenseAuthority(@NotBlank String licenseAuthority) {
-        this.licenseAuthority = licenseAuthority;
-    }
-
-    public @NotBlank String getJobTitle() {
-        return jobTitle;
-    }
-
-    public void setJobTitle(@NotBlank String jobTitle) {
-        this.jobTitle = jobTitle;
-    }
-
-    public @NotBlank String getSpecialization() {
-        return specialization;
-    }
-
-    public void setSpecialization(@NotBlank String specialization) {
-        this.specialization = specialization;
-    }
-
-    public @NotBlank String getClinicName() {
-        return clinicName;
-    }
-
-    public void setClinicName(@NotBlank String clinicName) {
-        this.clinicName = clinicName;
     }
 }
