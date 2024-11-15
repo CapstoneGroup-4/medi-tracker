@@ -11,19 +11,18 @@ import edu.capstone4.userserver.payload.request.MedicalRecordUpdateRequest;
 import edu.capstone4.userserver.repository.DoctorRepository;
 import edu.capstone4.userserver.repository.MedicalRecordRepository;
 import edu.capstone4.userserver.repository.AttachmentRepository;
-import edu.capstone4.userserver.repository.UserRepository;
 import edu.capstone4.userserver.utils.AuthUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -110,41 +109,13 @@ public class MedicalRecordService {
     // Fetch a single medical record by its ID
     public MedicalRecord getRecordById(Long id) {
         logger.info("Fetching medical record with ID: {}", id);
+        MedicalRecord record = checkCanAccessRecord(id);
 
-        String username = AuthUtils.getCurrentUsername();
-        Long userId = AuthUtils.getCurrentUserId();
-        boolean isDoctor = AuthUtils.isDoctor();
-
-        Optional<MedicalRecord> recordOpt = medicalRecordRepository.findById(id);
-        if (recordOpt.isPresent()) {
-            MedicalRecord record =  recordOpt.get();
-
-            // 权限校验逻辑
-            if (isDoctor) {
-                // 如果是医生，检查是否是自己创建的，或者被分享的记录
-                Long doctorId = doctorRepository.findByUserId(userId)
-                        .orElseThrow(() -> new BusinessException(ErrorCode.DOCTOR_NOT_FOUND))
-                        .getId();
-
-                boolean isCreator = record.getCreatorDoctor().getId().equals(doctorId);
-                boolean isShared = sharePermissionService.isRecordSharedWithDoctor(id, doctorId);
-
-                if (!isCreator && !isShared) {
-                    logger.warn("Unauthorized access attempt by doctor: {} for record: {}", username, id);
-                    throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
-                }
-                return record;
-            } else {
-                // 如果是普通用户，检查该记录是否与当前用户关联
-                if (!record.getUser().getId().equals(userId)) {
-                    logger.warn("Unauthorized access attempt by user: {} for record: {}", username, id);
-                    throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
-                }
-                return record;
-            }
-        } else {
-            throw new BusinessException(ErrorCode.MEDICAL_RECORD_NOT_FOUND);
+        if (record == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
+
+        return record;
     }
 
     // Update an existing medical record by its ID
@@ -201,18 +172,9 @@ public class MedicalRecordService {
         }
     }
 
-    public Attachment uploadFileToIpfs(Long recordId, MultipartFile file) throws IOException {
-        Long userId = AuthUtils.getCurrentUserId();
-        boolean isDoctor = AuthUtils.isDoctor();
-
-        if (!isDoctor) {
-            logger.warn("Unauthorized access, isDoctor: {}", isDoctor);
-            throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
-        }
-
-        Long doctorId = doctorRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.DOCTOR_NOT_FOUND))
-                .getId();
+    @Transactional
+    public Attachment uploadFileToIpfs(Long recordId, MultipartFile file) throws IOException, BusinessException {
+        Long doctorId = getDoctorIdByUserId();
 
         Optional<MedicalRecord> recordOptional = medicalRecordRepository.findById(recordId);
         if (recordOptional.isPresent()) {
@@ -234,6 +196,10 @@ public class MedicalRecordService {
             attachment.setUploadDate(new Date());
             attachment.setMedicalRecord(record);
 
+            if (record.getAttachments() == null) {
+                record.setAttachments(new ArrayList<>());
+            }
+
             record.getAttachments().add(attachment);
             attachmentRepository.save(attachment);
 
@@ -243,7 +209,27 @@ public class MedicalRecordService {
         }
     }
 
-    public byte[] downloadFileFromIpfs(Long fileId) throws IOException {
+    private Long getDoctorIdByUserId() {
+        Long userId = AuthUtils.getCurrentUserId();
+        boolean isDoctor = AuthUtils.isDoctor();
+
+        if (!isDoctor) {
+            logger.warn("Unauthorized access, isDoctor: {}", isDoctor);
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+        }
+
+        return doctorRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.DOCTOR_NOT_FOUND))
+                .getId();
+    }
+
+    public byte[] downloadFileFromIpfs(Long recordId, Long fileId) throws IOException {
+        MedicalRecord record = checkCanAccessRecord(recordId);
+
+        if (record == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+        }
+
         Optional<Attachment> attachmentOptional = attachmentRepository.findById(fileId);
         if (attachmentOptional.isPresent()) {
             String ipfsHash = attachmentOptional.get().getIpfsHash();
@@ -252,13 +238,64 @@ public class MedicalRecordService {
         } else {
             throw new IOException("Attachment not found");
         }
+
+    }
+
+    public String getAttachmentNameById(Long fileId) {
+        Optional<Attachment> attachmentOptional = attachmentRepository.findById(fileId);
+        if (attachmentOptional.isPresent()) {
+            return attachmentOptional.get().getFileName();
+        } else {
+            throw new BusinessException("Attachment not found", ErrorCode.ATTACHMENT_NOT_FOUND);
+        }
     }
 
     public List<Attachment> getAttachmentsByRecordId(Long recordId) {
-        MedicalRecord record = medicalRecordRepository.findById(recordId)
-                .orElseThrow(() -> new BusinessException("Medical record not found", ErrorCode.RECORD_NOT_FOUND));
+        MedicalRecord record = checkCanAccessRecord(recordId);
+
+        if (record == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+        }
+
+        Long doctorId = getDoctorIdByUserId();
+
+        boolean isCreator = record.getCreatorDoctor().getId().equals(doctorId);
+        boolean isShared = sharePermissionService.isRecordSharedWithDoctor(recordId, doctorId);
+
+        if (!isCreator && !isShared) {
+            logger.warn("Unauthorized access attempt by doctor: {} for record: {}", doctorId, recordId);
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+        }
         // Return the list of attachments
         return record.getAttachments();
+    }
+
+    private MedicalRecord checkCanAccessRecord(Long recordId) {
+        String username = AuthUtils.getCurrentUsername();
+        Long userId = AuthUtils.getCurrentUserId();
+        boolean isDoctor = AuthUtils.isDoctor();
+
+        MedicalRecord record = medicalRecordRepository.findById(recordId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RECORD_NOT_FOUND));
+
+        if (isDoctor) {
+            Long doctorId = getDoctorIdByUserId();
+
+            boolean isCreator = record.getCreatorDoctor().getId().equals(doctorId);
+            boolean isShared = sharePermissionService.isRecordSharedWithDoctor(recordId, doctorId);
+
+            if (!isCreator && !isShared) {
+                logger.warn("Unauthorized access attempt by doctor: {} for record: {}", doctorId, recordId);
+                return null;
+            }
+        } else {
+            if (!record.getUser().getId().equals(userId)) {
+                logger.warn("Unauthorized access attempt by user: {} for record: {}", username, record.getId());
+                return null;
+            }
+        }
+
+        return record;
     }
 
 }

@@ -16,7 +16,7 @@ import java.util.Optional;
 
 @Repository
 public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Long> {
-    @EntityGraph(attributePaths = {"creatorDoctor.user", "user"})
+    @EntityGraph(attributePaths = {"creatorDoctor.user", "user", "attachments"})
     Optional<MedicalRecord> findById(Long id);
 
     // Fetch records created by a doctor or shared with the doctor

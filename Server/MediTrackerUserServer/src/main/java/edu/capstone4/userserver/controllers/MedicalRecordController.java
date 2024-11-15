@@ -188,11 +188,12 @@ public class MedicalRecordController {
     // 下载文件附件
     @GetMapping("/{recordId}/download/{fileId}")
     @PreAuthorize("hasRole('DOCTOR') or hasRole('USER')")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable Long fileId) {
+    public ResponseEntity<byte[]> downloadFile(@PathVariable Long recordId, @PathVariable Long fileId) {
         try {
-            byte[] fileData = medicalRecordService.downloadFileFromIpfs(fileId);
+            byte[] fileData = medicalRecordService.downloadFileFromIpfs(recordId, fileId);
             HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileId);
+            String fileName = medicalRecordService.getAttachmentNameById(fileId);
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName);
             return ResponseEntity.ok().headers(headers).body(fileData);
         } catch (IOException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
