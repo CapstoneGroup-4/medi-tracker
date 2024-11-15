@@ -12,9 +12,12 @@ import edu.capstone4.userserver.repository.DoctorRepository;
 import edu.capstone4.userserver.repository.MedicalRecordRepository;
 import edu.capstone4.userserver.repository.AttachmentRepository;
 import edu.capstone4.userserver.repository.UserRepository;
+import edu.capstone4.userserver.utils.AuthUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.slf4j.Logger;
@@ -22,15 +25,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 public class MedicalRecordService {
 
     private static final Logger logger = LoggerFactory.getLogger(MedicalRecordService.class);
-
-    @Autowired
-    private UserRepository userRepository;
 
     @Autowired
     private UserService userService;
@@ -40,6 +41,9 @@ public class MedicalRecordService {
 
     @Autowired
     private AttachmentRepository attachmentRepository;
+
+    @Autowired
+    private SharePermissionService sharePermissionService;
 
     @Autowired
     private DoctorRepository doctorRepository;
@@ -72,63 +76,152 @@ public class MedicalRecordService {
         return medicalRecordRepository.save(record);
     }
 
-    // Fetch paginated medical records sorted by last update date
+    // Fetch paginated medical records based on user or doctor permissions
     public Page<MedicalRecord> getAllRecords(Pageable pageable) {
-        logger.info("Fetching all medical records with pagination, sorted by last update.");
-        return medicalRecordRepository.findAll(pageable);
+        logger.info("Fetching all medical records, with pagination, sorted by last update.");
+        // Fetch records based on the user's role
+        // Get the current authenticated user
+        Long userId = AuthUtils.getCurrentUserId();
+        boolean isDoctor = AuthUtils.isDoctor();
+
+        logger.info(" Current user ID: {}, isDoctor: {}", userId, isDoctor);
+
+        Optional<Page<MedicalRecord>> optionalRecords;
+
+        if (isDoctor) {
+            Long doctorId = doctorRepository.findByUserId(userId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.DOCTOR_NOT_FOUND))
+                    .getId();
+            optionalRecords = Optional.ofNullable(medicalRecordRepository
+                    .findAllByCreatorDoctor_IdOrSharedWithDoctors_Doctor_Id(doctorId, doctorId, pageable));
+        } else {
+            optionalRecords = Optional.ofNullable(medicalRecordRepository
+                    .findAllByUser_Id(userId, pageable));
+        }
+
+        if (optionalRecords.isPresent() && !optionalRecords.get().isEmpty()) {
+            return optionalRecords.get();
+        } else {
+            logger.info("No records found for user ID: {}", userId);
+            return Page.empty();
+        }
     }
 
     // Fetch a single medical record by its ID
     public MedicalRecord getRecordById(Long id) {
         logger.info("Fetching medical record with ID: {}", id);
+
+        String username = AuthUtils.getCurrentUsername();
+        Long userId = AuthUtils.getCurrentUserId();
+        boolean isDoctor = AuthUtils.isDoctor();
+
         Optional<MedicalRecord> recordOpt = medicalRecordRepository.findById(id);
         if (recordOpt.isPresent()) {
-            return recordOpt.get();
+            MedicalRecord record =  recordOpt.get();
+
+            // 权限校验逻辑
+            if (isDoctor) {
+                // 如果是医生，检查是否是自己创建的，或者被分享的记录
+                Long doctorId = doctorRepository.findByUserId(userId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.DOCTOR_NOT_FOUND))
+                        .getId();
+
+                boolean isCreator = record.getCreatorDoctor().getId().equals(doctorId);
+                boolean isShared = sharePermissionService.isRecordSharedWithDoctor(id, doctorId);
+
+                if (!isCreator && !isShared) {
+                    logger.warn("Unauthorized access attempt by doctor: {} for record: {}", username, id);
+                    throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+                }
+                return record;
+            } else {
+                // 如果是普通用户，检查该记录是否与当前用户关联
+                if (!record.getUser().getId().equals(userId)) {
+                    logger.warn("Unauthorized access attempt by user: {} for record: {}", username, id);
+                    throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+                }
+                return record;
+            }
         } else {
             throw new BusinessException(ErrorCode.MEDICAL_RECORD_NOT_FOUND);
         }
     }
 
     // Update an existing medical record by its ID
-    public MedicalRecord updateRecord(Long id, MedicalRecordUpdateRequest updatedRecordRequest, Long doctorId) {
+    public MedicalRecord updateRecord(Long id, MedicalRecordUpdateRequest updatedRecordRequest) {
         logger.info("Updating medical record with ID: {}", id);
 
-        // Find the doctor by doctorId
-        doctorRepository.findById(doctorId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.DOCTOR_NOT_FOUND));
+        Long userId = AuthUtils.getCurrentUserId();
 
-        return medicalRecordRepository.findById(id)
-                .map(record -> {
-                    if (!record.getCreatorDoctor().getId().equals(doctorId)) {
-                        throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
-                    }
-                    record.setPrimaryDiagnosis(updatedRecordRequest.getPrimaryDiagnosis());
-                    record.setDateOfDiagnosis(updatedRecordRequest.getDateOfDiagnosis());
-                    record.setComment(updatedRecordRequest.getComment());
-                    record.setDateOfLastUpdate(new Date());
-                    record.setRecordVersion(record.getRecordVersion() + 1); // Increment version
-                    return medicalRecordRepository.save(record);
-                }).orElse(null);
+        Optional<MedicalRecord> recordOpt = medicalRecordRepository.findById(id);
+        if (recordOpt.isPresent()) {
+            MedicalRecord record = recordOpt.get();
+            Long doctorId = doctorRepository.findByUserId(userId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.DOCTOR_NOT_FOUND))
+                    .getId();
+            // Find the doctor by doctorId
+            doctorRepository.findById(doctorId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.DOCTOR_NOT_FOUND));
+
+            if (!record.getCreatorDoctor().getId().equals(doctorId)) {
+                throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+            }
+            record.setPrimaryDiagnosis(updatedRecordRequest.getPrimaryDiagnosis());
+            record.setDateOfDiagnosis(updatedRecordRequest.getDateOfDiagnosis());
+            record.setComment(updatedRecordRequest.getComment());
+            record.setDateOfLastUpdate(new Date());
+            record.setRecordVersion(record.getRecordVersion() + 1); // Increment version
+            return medicalRecordRepository.save(record);
+        } else {
+            throw new BusinessException(ErrorCode.MEDICAL_RECORD_NOT_FOUND);
+        }
     }
 
     // Delete (soft delete) a medical record by setting a deleted flag or removing it completely
     public void deleteRecord(Long id) {
         logger.info("Deleting medical record with ID: {}", id);
+
+        Long userId = AuthUtils.getCurrentUserId();
+
         Optional<MedicalRecord> recordOpt = medicalRecordRepository.findById(id);
         if (recordOpt.isPresent()) {
-            MedicalRecord record = recordOpt.get();
+            MedicalRecord record =  recordOpt.get();
+
+            Long doctorId = doctorRepository.findByUserId(userId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.DOCTOR_NOT_FOUND))
+                    .getId();
+            if (!record.getCreatorDoctor().getId().equals(doctorId)) {
+                throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+            }
+
             record.setDeleted(true);
             medicalRecordRepository.save(record);
-            logger.info("Medical record with ID: {} has been marked as deleted.", id);
         } else {
-            new BusinessException(ErrorCode.MEDICAL_RECORD_NOT_FOUND);
+            throw new BusinessException(ErrorCode.MEDICAL_RECORD_NOT_FOUND);
         }
     }
 
     public Attachment uploadFileToIpfs(Long recordId, MultipartFile file) throws IOException {
+        Long userId = AuthUtils.getCurrentUserId();
+        boolean isDoctor = AuthUtils.isDoctor();
+
+        if (!isDoctor) {
+            logger.warn("Unauthorized access, isDoctor: {}", isDoctor);
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+        }
+
+        Long doctorId = doctorRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.DOCTOR_NOT_FOUND))
+                .getId();
+
         Optional<MedicalRecord> recordOptional = medicalRecordRepository.findById(recordId);
         if (recordOptional.isPresent()) {
             MedicalRecord record = recordOptional.get();
+
+            if (!record.getCreatorDoctor().getId().equals(doctorId)) {
+                logger.warn("Unauthorized access attempt by doctor: {} for record: {}", doctorId, record.getCreatorDoctor().getId());
+                throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+            }
 
             // Upload to IPFS
             String ipfsHash = ipfsService.uploadFile(file);
@@ -160,4 +253,12 @@ public class MedicalRecordService {
             throw new IOException("Attachment not found");
         }
     }
+
+    public List<Attachment> getAttachmentsByRecordId(Long recordId) {
+        MedicalRecord record = medicalRecordRepository.findById(recordId)
+                .orElseThrow(() -> new BusinessException("Medical record not found", ErrorCode.RECORD_NOT_FOUND));
+        // Return the list of attachments
+        return record.getAttachments();
+    }
+
 }

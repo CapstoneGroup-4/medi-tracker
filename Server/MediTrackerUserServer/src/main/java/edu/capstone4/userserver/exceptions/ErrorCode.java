@@ -16,6 +16,7 @@ public enum ErrorCode {
     UNAUTHORIZED_ACCESS(10012, "Error: Unauthorized access!"),
     RECORD_ACCESS_REVOCATION_FAILED(10013, "Error: Failed to revoke access to the record."),
     DOCTOR_ALREADY_ACTIVATED(10014, "Error: Doctor is already activated."),
+    RECORD_NOT_FOUND(10015, "Error: Record not found."),
     ;
 
 

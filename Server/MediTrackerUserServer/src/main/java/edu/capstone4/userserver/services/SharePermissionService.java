@@ -25,6 +25,10 @@ public class SharePermissionService {
     @Autowired
     private DoctorRepository doctorRepository;
 
+    public boolean isRecordSharedWithDoctor(Long recordId, Long doctorId) {
+        return sharePermissionRepository.existsByMedicalRecordIdAndDoctorId(recordId, doctorId);
+    }
+
     /**
      * Shares a medical record with a doctor.
      *

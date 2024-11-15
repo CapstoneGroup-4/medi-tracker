@@ -1,7 +1,12 @@
 package edu.capstone4.userserver.payload.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties({"creatorDoctor", "user", "sharedWithDoctors"})
 public class MedicalRecordResponse {
-    private String username;
+    private Long id;
+
+    private String patientName;
 
     private int gender;
 
@@ -21,9 +26,13 @@ public class MedicalRecordResponse {
 
     private String clinicName;
 
-    public MedicalRecordResponse(String username, int gender, int age, String sin, String recordId, String primaryDiagnosis,
+    public MedicalRecordResponse() {
+    }
+
+    public MedicalRecordResponse(Long id, String patientName, int gender, int age, String sin, String recordId, String primaryDiagnosis,
                                  String dateOfDiagnosis, String comment, String doctorName, String clinicName) {
-        this.username = username;
+        this.id = id;
+        this.patientName = patientName;
         this.gender = gender;
         this.age = age;
         this.sin = sin;
@@ -35,12 +44,20 @@ public class MedicalRecordResponse {
         this.clinicName = clinicName;
     }
 
-    public String getUsername() {
-        return username;
+    public Long getId() {
+        return id;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getPatientName() {
+        return patientName;
+    }
+
+    public void setPatientName(String patientName) {
+        this.patientName = patientName;
     }
 
     public int getGender() {

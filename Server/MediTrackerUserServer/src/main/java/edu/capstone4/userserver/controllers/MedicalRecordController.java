@@ -2,14 +2,20 @@ package edu.capstone4.userserver.controllers;
 
 import edu.capstone4.userserver.exceptions.BusinessException;
 import edu.capstone4.userserver.exceptions.ErrorCode;
+import edu.capstone4.userserver.jwt.AuthTokenFilter;
 import edu.capstone4.userserver.models.Doctor;
 import edu.capstone4.userserver.models.MedicalRecord;
+import edu.capstone4.userserver.models.User;
 import edu.capstone4.userserver.payload.request.MedicalRecordRequest;
 import edu.capstone4.userserver.payload.request.MedicalRecordUpdateRequest;
+import edu.capstone4.userserver.payload.response.AttachmentResponse;
 import edu.capstone4.userserver.payload.response.BaseResponse;
+import edu.capstone4.userserver.payload.response.MedicalRecordResponse;
 import edu.capstone4.userserver.services.DoctorService;
 import edu.capstone4.userserver.services.MedicalRecordService;
 import edu.capstone4.userserver.services.SharePermissionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,10 +42,9 @@ public class MedicalRecordController {
     public MedicalRecordService medicalRecordService;
 
     @Autowired
-    private DoctorService doctorService;
-
-    @Autowired
     private SharePermissionService sharePermissionService;
+
+    private static final Logger logger = LoggerFactory.getLogger(MedicalRecordController.class);
 
     // 创建新医疗记录，仅限医生
     @PostMapping("/create")
@@ -47,7 +52,10 @@ public class MedicalRecordController {
     public ResponseEntity<?> createRecord(@Valid @RequestBody MedicalRecordRequest request) {
         try {
             MedicalRecord createdRecord = medicalRecordService.createRecord(request);
-            return ResponseEntity.ok(new BaseResponse<>(createdRecord));
+
+            MedicalRecordResponse recordResponse = getMedicalRecordResponse(createdRecord);
+
+            return ResponseEntity.ok(new BaseResponse<>(recordResponse));
         } catch (BusinessException e) {
             return ResponseEntity
                     .badRequest()
@@ -58,10 +66,32 @@ public class MedicalRecordController {
                             ErrorCode.FAILED_TO_CREATE_MEDICAL_RECORD.getCode()));
         }
     }
+
+    private MedicalRecordResponse getMedicalRecordResponse(MedicalRecord createdRecord) {
+        MedicalRecordResponse recordResponse = new MedicalRecordResponse();
+        recordResponse.setId(createdRecord.getId());
+        recordResponse.setRecordId(createdRecord.getRecordSerialNumber());
+        recordResponse.setDateOfDiagnosis(createdRecord.getDateOfDiagnosis());
+        recordResponse.setComment(createdRecord.getComment());
+        recordResponse.setPrimaryDiagnosis(createdRecord.getPrimaryDiagnosis());
+        // Access lazy fields to ensure they are initialized
+        Doctor creatorDoctor = createdRecord.getCreatorDoctor();
+        User user = createdRecord.getUser();
+
+        recordResponse.setClinicName(creatorDoctor.getClinicName());
+        recordResponse.setDoctorName(user.getUsername());
+        recordResponse.setPatientName(user.getUsername());
+
+        recordResponse.setAge(user.getAge());
+        recordResponse.setGender(user.getGender());
+        recordResponse.setSin(user.getSin());
+
+        return recordResponse;
+    }
+
     // 获取所有未删除的医疗记录，仅限医生
     @GetMapping("/all")
-    @PreAuthorize("hasRole('DOCTOR')")
-
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('USER')")
     public ResponseEntity<?> getAllRecords(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -69,22 +99,31 @@ public class MedicalRecordController {
             @RequestParam(defaultValue = "asc") String sortDir) {
 
         Pageable pageable = PageRequest.of(page, size, sortDir.equals("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending());
-        Page<MedicalRecord> records = medicalRecordService.getAllRecords(pageable);
-        return ResponseEntity.ok(new BaseResponse<>(records));
+        try {
+            Page<MedicalRecord> records = medicalRecordService.getAllRecords(pageable);
+            Page<MedicalRecordResponse> recordResponses = records.map(this::getMedicalRecordResponse);
+            return ResponseEntity.ok(new BaseResponse<>(recordResponses));
+        } catch (BusinessException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new BaseResponse<>(e.getMessage(), e.getErrorCode().getCode()));
+        }
     }
 
     // 根据ID获取单个医疗记录，医生可以查看所有记录，患者只能查看自己的记录
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('DOCTOR') or hasRole('PATIENT')")
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('USER')")
     public ResponseEntity<?> getRecordById(@PathVariable Long id) {
         try {
             MedicalRecord record = medicalRecordService.getRecordById(id);
-            return ResponseEntity.ok(record);
+            MedicalRecordResponse recordResponse = getMedicalRecordResponse(record);
+            return ResponseEntity.ok(new BaseResponse<>(recordResponse));
         } catch (BusinessException e) {
             return ResponseEntity
                     .badRequest()
                     .body(new BaseResponse<>(e.getMessage(), e.getErrorCode().getCode()));
         } catch (Exception e) {
+            logger.error("Error occurred while fetching medical record: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     new BaseResponse<>(ErrorCode.INTERNAL_SERVER_ERROR.getMessage(),
                             ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
@@ -94,12 +133,15 @@ public class MedicalRecordController {
     // 更新医疗记录，仅限医生
     @PutMapping("/update/{id}")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<?> updateRecord(@PathVariable Long id, @RequestBody MedicalRecordUpdateRequest updatedRecord, @RequestParam Long doctorId) {
-        MedicalRecord record = medicalRecordService.updateRecord(id, updatedRecord, doctorId);
+    public ResponseEntity<?> updateRecord(@PathVariable Long id, @RequestBody MedicalRecordUpdateRequest updatedRecord) {
+        MedicalRecord record = medicalRecordService.updateRecord(id, updatedRecord);
         if (record == null) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity
+                    .badRequest()
+                    .body(new BaseResponse<>(ErrorCode.DOCTOR_NOT_FOUND.getMessage(), ErrorCode.DOCTOR_NOT_FOUND.getCode()));
         }
-        return ResponseEntity.ok(record);
+        MedicalRecordResponse recordResponse = getMedicalRecordResponse(record);
+        return ResponseEntity.ok(new BaseResponse<>(recordResponse));
     }
 
     // 逻辑删除医疗记录，仅限医生
@@ -122,15 +164,30 @@ public class MedicalRecordController {
     public ResponseEntity<?> uploadFile(@PathVariable Long recordId, @RequestParam("file") MultipartFile file) {
         try {
             Attachment attachment = medicalRecordService.uploadFileToIpfs(recordId, file);
-            return new ResponseEntity<>(new BaseResponse<>(attachment), HttpStatus.CREATED);
+
+            AttachmentResponse responseAttachment = getAttachmentResponse(attachment);
+            return new ResponseEntity<>(new BaseResponse<>(responseAttachment), HttpStatus.CREATED);
         } catch (IOException e) {
             return new ResponseEntity<>(new BaseResponse<>("File upload failed: " + e.getMessage(), ErrorCode.INTERNAL_SERVER_ERROR.getCode()), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (BusinessException e) {
+            return new ResponseEntity<>(new BaseResponse<>(e.getMessage(), e.getErrorCode().getCode()), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    private AttachmentResponse getAttachmentResponse(Attachment attachment) {
+        AttachmentResponse responseAttachment = new AttachmentResponse();
+        responseAttachment.setAttachmentId(attachment.getId());
+        responseAttachment.setAttachmentName(attachment.getFileName());
+        responseAttachment.setIpfsHash(attachment.getIpfsHash());
+        responseAttachment.setUploadDate(attachment.getUploadDate());
+        responseAttachment.setRecordId(attachment.getMedicalRecord().getId());
+        responseAttachment.setRecordNo(attachment.getMedicalRecord().getRecordSerialNumber());
+        return responseAttachment;
     }
 
     // 下载文件附件
     @GetMapping("/{recordId}/download/{fileId}")
-    @PreAuthorize("hasRole('DOCTOR') or hasRole('PATIENT')")
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('USER')")
     public ResponseEntity<byte[]> downloadFile(@PathVariable Long fileId) {
         try {
             byte[] fileData = medicalRecordService.downloadFileFromIpfs(fileId);
@@ -141,6 +198,37 @@ public class MedicalRecordController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
+
+    /**
+     * Endpoint to get all attachments for a specific medical record.
+     *
+     * @param recordId ID of the medical record.
+     * @return List of attachments associated with the medical record.
+     */
+    @GetMapping("/{recordId}/attachments")
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('USER')")
+    public ResponseEntity<?> getAttachmentsByRecordId(@PathVariable Long recordId) {
+        try {
+            List<Attachment> attachments = medicalRecordService.getAttachmentsByRecordId(recordId);
+
+            // Convert to DTO for response
+            List<AttachmentResponse> attachmentResponses = attachments.stream()
+                    .map(this::getAttachmentResponse)
+                    .toList();
+
+            return ResponseEntity.ok(new BaseResponse<>(attachmentResponses));
+        } catch (BusinessException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new BaseResponse<>(e.getMessage(), e.getErrorCode().getCode()));
+        } catch (Exception e) {
+            logger.error("Error occurred while fetching attachments for record ID {}: {}", recordId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new BaseResponse<>(ErrorCode.INTERNAL_SERVER_ERROR.getMessage(),
+                            ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
+        }
+    }
+
 
     /**
      * Endpoint to share a medical record with another doctor.
@@ -168,6 +256,7 @@ public class MedicalRecordController {
      * @return List of doctors with whom the record is shared.
      */
     @GetMapping("/{recordId}/shared-doctors")
+    @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<?> getDoctorsWithAccess(@PathVariable Long recordId) {
         List<Doctor> sharedDoctors = sharePermissionService.getDoctorsWithAccessToRecord(recordId);
         return ResponseEntity.ok(new BaseResponse<>(sharedDoctors));

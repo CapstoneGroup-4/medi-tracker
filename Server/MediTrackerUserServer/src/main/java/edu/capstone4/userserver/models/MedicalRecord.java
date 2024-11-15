@@ -50,6 +50,8 @@ public class MedicalRecord {
     public MedicalRecord() {
         this.dateOfCreate = new Date(); // Set creation date at instantiation
         this.dateOfLastUpdate = new Date(); // Set last update date at instantiation
+        this.attachments = new ArrayList<>(); // Initialize as empty list
+        this.sharedWithDoctors = new ArrayList<>(); // Initialize as empty list
     }
 
     // Getters and Setters

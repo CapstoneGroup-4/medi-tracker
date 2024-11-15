@@ -13,6 +13,8 @@ import java.util.Optional;
 @Repository
 public interface SharePermissionRepository extends JpaRepository<SharePermission, Long> {
 
+    boolean existsByMedicalRecordIdAndDoctorId(Long medicalRecordId, Long doctorId);
+
     boolean existsByMedicalRecordAndDoctor(MedicalRecord record, Doctor doctor);
 
     Optional<SharePermission> findByMedicalRecordAndDoctor(MedicalRecord record, Doctor doctor);

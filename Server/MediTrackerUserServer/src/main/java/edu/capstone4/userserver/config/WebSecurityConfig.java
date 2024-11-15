@@ -12,6 +12,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.core.GrantedAuthorityDefaults;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -73,7 +74,7 @@ public class WebSecurityConfig {
 
                             // 5. 基于角色的授权控制
                             .requestMatchers("/api/doctor/**").hasRole("DOCTOR") // 仅医生可以访问 /api/doctor/** 端点
-                            .requestMatchers("/api/patient/**").hasRole("PATIENT") // 仅患者可以访问 /api/patient/** 端点
+                            .requestMatchers("/api/admin/**").hasRole("ADMIN")  // 仅管理员可以访问 /api/admin/** 端点
                             .anyRequest().authenticated()// 其他所有请求需要认证
             );
 
@@ -83,5 +84,10 @@ public class WebSecurityConfig {
     http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
     // 8. 构建配置
     return http.build();
+  }
+
+  @Bean
+  public GrantedAuthorityDefaults grantedAuthorityDefaults() {
+    return new GrantedAuthorityDefaults(""); // Remove the "ROLE_" prefix
   }
 }
