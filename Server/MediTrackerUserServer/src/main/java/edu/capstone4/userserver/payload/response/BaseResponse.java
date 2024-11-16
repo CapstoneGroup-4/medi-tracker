@@ -18,6 +18,12 @@ public class BaseResponse<T> {
         this.code = code;
     }
 
+    public BaseResponse(String message, T data, int code) {
+        this.message = message;
+        this.data = data;
+        this.code = code;
+    }
+
     public String getMessage() {
         return message;
     }
@@ -40,5 +46,14 @@ public class BaseResponse<T> {
 
     public void setCode(int code) {
         this.code = code;
+    }
+
+    @Override
+    public String toString() {
+        return "BaseResponse{" +
+                "message='" + message + '\'' +
+                ", data=" + data +
+                ", code=" + code +
+                '}';
     }
 }

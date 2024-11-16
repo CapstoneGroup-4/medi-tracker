@@ -6,9 +6,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import edu.capstone4.userserver.config.ErrorCodeConfig;
-import edu.capstone4.userserver.properties.ErrorCodeProperties;
 import edu.capstone4.userserver.events.registers.RegistrationCompleteEvent;
+import edu.capstone4.userserver.exceptions.BusinessException;
+import edu.capstone4.userserver.exceptions.ErrorCode;
+import edu.capstone4.userserver.exceptions.RoleNotFoundException;
 import edu.capstone4.userserver.models.Doctor;
 import edu.capstone4.userserver.models.ERole;
 import edu.capstone4.userserver.models.Role;
@@ -20,11 +21,10 @@ import edu.capstone4.userserver.payload.response.BaseResponse;
 import edu.capstone4.userserver.payload.response.JwtResponse;
 import edu.capstone4.userserver.payload.response.SignupResponse;
 import edu.capstone4.userserver.repository.DoctorRepository;
-import edu.capstone4.userserver.repository.RoleRepository;
 import edu.capstone4.userserver.repository.UserRepository;
 import edu.capstone4.userserver.jwt.JwtUtils;
 import edu.capstone4.userserver.services.UserDetailsImpl;
-import edu.capstone4.userserver.services.UserDetailsServiceImpl;
+import edu.capstone4.userserver.services.UserService;
 import edu.capstone4.userserver.services.VerificationCodeService;
 import jakarta.validation.Valid;
 
@@ -55,9 +55,6 @@ public class AuthController {
     UserRepository userRepository;
 
     @Autowired
-    RoleRepository roleRepository;
-
-    @Autowired
     DoctorRepository doctorRepository;
 
     @Autowired
@@ -70,20 +67,15 @@ public class AuthController {
     ApplicationEventPublisher eventPublisher;
 
     @Autowired
-    private ErrorCodeProperties errorCodeProperties;
-
-    @Autowired
-    UserDetailsServiceImpl userDetailsService;
+    UserService userService;
 
     @GetMapping("/isactive/{email}")
     public ResponseEntity<?> getUserActiveStatus(@PathVariable("email") String email) {
         if (userRepository.existsByEmailAndEnabled(email, true)) {
             return ResponseEntity.ok(new BaseResponse<>("User is active."));
         }
-
-        // 从配置中获取错误码和消息
-        ErrorCodeConfig errorCodeConfig = errorCodeProperties.getCode("user-not-active");
-        return ResponseEntity.ok(new BaseResponse<>(errorCodeConfig.getMessage(), errorCodeConfig.getCode()));
+        return ResponseEntity.ok(new BaseResponse<>(ErrorCode.USER_INACTIVE.getMessage(),
+                ErrorCode.USER_INACTIVE.getCode()));
     }
 
     @PostMapping("/signin")
@@ -108,18 +100,12 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        if (userRepository.existsByUsername(signUpRequest.getUsername())) {
+        try {
+            userService.checkRegisterUserValidation(signUpRequest.getEmail(), signUpRequest.getUsername());
+        } catch (BusinessException e) {
             return ResponseEntity
                     .badRequest()
-                    .body(new BaseResponse<>(errorCodeProperties.getCode("user-name-exist").getMessage(),
-                            errorCodeProperties.getCode("user-name-exist").getCode()));
-        }
-
-        if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(new BaseResponse<>(errorCodeProperties.getCode("user-email-exist").getMessage(),
-                            errorCodeProperties.getCode("user-email-exist").getCode()));
+                    .body(new BaseResponse<>(e.getMessage(), e.getErrorCode().getCode()));
         }
 
         // Create new user's account
@@ -129,24 +115,12 @@ public class AuthController {
 
         String strRoles = signUpRequest.getRole();
         Role role;
-
-        if (strRoles == null) {
-            role = roleRepository.findByName(ERole.ROLE_USER)
-                    .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-        } else {
-            switch (strRoles) {
-                case "admin":
-                    role = roleRepository.findByName(ERole.ROLE_ADMIN)
-                            .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-                    break;
-                case "doc":
-                    role = roleRepository.findByName(ERole.ROLE_DOCTOR)
-                            .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-                    break;
-                default:
-                    role = roleRepository.findByName(ERole.ROLE_USER)
-                            .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-            }
+        try {
+            role = userService.assignRoleToUser(strRoles);
+        } catch (RoleNotFoundException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new BaseResponse<>(e.getMessage(), e.getErrorCode().getCode()));
         }
 
         Set<Role> roles = new HashSet<>();
@@ -173,9 +147,10 @@ public class AuthController {
 
         userRepository.save(user);
 
-        if (ERole.ROLE_USER.equals(role.getName())) {
+        if (ERole.USER.equals(role.getName())) {
             // 生成验证码
             String verificationCode = verificationCodeService.generateCode();
+            verificationCodeService.saveCode(user.getEmail(), verificationCode);
             // 发布用户注册完成事件
             eventPublisher.publishEvent(new RegistrationCompleteEvent(user.getEmail(), verificationCode));
             return ResponseEntity.ok(new BaseResponse<>("User registered successfully! A verification code has been sent to your email."));
@@ -194,11 +169,32 @@ public class AuthController {
     @PostMapping("/doctor-signup")
     public ResponseEntity<?> doctorVerification(@Valid @RequestBody DoctorSignupRequest doctorSignupRequest) {
         // 检查医生是否已存在
+        if (doctorRepository.existsByUserId(doctorSignupRequest.getUserId())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new BaseResponse<>(
+                            ErrorCode.DOCTOR_EXIST.getMessage(), ErrorCode.DOCTOR_EXIST.getCode()));
+        }
+
         if (doctorRepository.existsByPersonalId(doctorSignupRequest.getPersonalId())) {
             return ResponseEntity
                     .badRequest()
-                    .body(new BaseResponse<>(errorCodeProperties.getCode("doctor-exist").getMessage(),
-                            errorCodeProperties.getCode("doctor-exist").getCode()));
+                    .body(new BaseResponse<>(
+                            ErrorCode.DOCTOR_EXIST.getMessage(), ErrorCode.DOCTOR_EXIST.getCode()));
+        }
+
+        if (doctorRepository.existsByLicense(doctorSignupRequest.getLicense())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new BaseResponse<>(
+                            ErrorCode.DOCTOR_EXIST.getMessage(), ErrorCode.DOCTOR_EXIST.getCode()));
+        }
+
+        if (doctorRepository.existsByProfessionalId(doctorSignupRequest.getProfessionalId())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new BaseResponse<>(
+                            ErrorCode.DOCTOR_EXIST.getMessage(), ErrorCode.DOCTOR_EXIST.getCode()));
         }
 
         // 获取User对象，假设请求包含用户ID，用来与Doctor关联
@@ -206,8 +202,8 @@ public class AuthController {
         if (userOptional.isEmpty()) {
             return ResponseEntity
                     .badRequest()
-                    .body(new BaseResponse<>(errorCodeProperties.getCode("user-not-found").getMessage(),
-                            errorCodeProperties.getCode("user-not-found").getCode()));
+                    .body(new BaseResponse<>(ErrorCode.USER_NOT_FOUND.getMessage(),
+                            ErrorCode.USER_NOT_FOUND.getCode()));
         }
 
         User user = userOptional.get();
@@ -223,16 +219,19 @@ public class AuthController {
                 doctorSignupRequest.getClinicName()
         );
 
+        if (doctorSignupRequest.getMembership() != null) {
+            doctor.setMembership(doctorSignupRequest.getMembership());
+        }
+
         // 关联 User 对象
         doctor.setUser(user);
         doctorRepository.save(doctor);
 
         // 获取关联的 User email
         String email = user.getEmail();
-
         // 生成验证码
         String verificationCode = verificationCodeService.generateCode();
-
+        verificationCodeService.saveCode(user.getEmail(), verificationCode);
         // 发布用户注册完成事件
         eventPublisher.publishEvent(new RegistrationCompleteEvent(email, verificationCode));
 

@@ -1,0 +1,14 @@
+version: '3.3'
+services:
+  meditrackeruserserver:
+    build: ./MediTrackerUserServer
+    ports:
+      - "9080:9080"
+    environment:
+      MYSQL_HOST: 47.116.123.99
+      MYSQL_USER: ianzhang
+      MYSQL_PASS: ${MYSQL_PASS}
+      MYSQL_PORT: 3306
+      REDIS_HOST: 47.116.123.99
+      REDIS_PASS: ${REDIS_PASS}
+      REDIS_PORT: 6379
