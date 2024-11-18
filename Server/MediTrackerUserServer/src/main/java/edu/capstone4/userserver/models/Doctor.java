@@ -4,6 +4,12 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "doctors",
         uniqueConstraints = {
@@ -44,6 +50,12 @@ public class Doctor {
     private String clinicName;
 
     private String membership;
+
+    @Column(name = "is_activated")
+    private boolean isActivated = false;
+
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SharePermission> sharedRecords = new ArrayList<>();
 
     // Default constructor
     public Doctor() {
@@ -139,5 +151,21 @@ public class Doctor {
 
     public void setMembership(String membership) {
         this.membership = membership;
+    }
+
+    public boolean isActivated() {
+        return isActivated;
+    }
+
+    public void setActivated(boolean isActivated) {
+        this.isActivated = isActivated;
+    }
+
+    public List<SharePermission> getSharedRecords() {
+        return sharedRecords;
+    }
+
+    public void setSharedRecords(List<SharePermission> sharedRecords) {
+        this.sharedRecords = sharedRecords;
     }
 }

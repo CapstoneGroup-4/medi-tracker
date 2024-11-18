@@ -1,79 +1,60 @@
 package edu.capstone4.userserver.models;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.Temporal;
-import jakarta.persistence.TemporalType;
-import java.util.Date;
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Entity
 @Table(name = "medical_records")
 public class MedicalRecord {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // General Information
-    private String patientName;
-    private String gender;
-    private Date dateOfBirth;
-    private String recordNo;
-    private String sin;
-    private String nik;
+    @ManyToOne
+    @JoinColumn(name = "creator_doctor_id", referencedColumnName = "id", nullable = false)
+    private Doctor creatorDoctor;
 
-    // Diagnosis & Treatment
-    private String primaryDiagnosis;
-    @Temporal(TemporalType.DATE)
-    private Date dateOfDiagnosis;
-    @Column(length = 1000)
-    private String doctorsNotes;
-    @Column(length = 1000)
-    private String treatmentPlan;
-    private String nextSteps;
-    private String treatmentStatus;
-    private String physicianName;
+    @ManyToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    private User user;
 
-    // Prescribed Medication
-    private String medicationName;
-    private String dosage;
-    private String frequency;
-    private String duration;
-    @Column(length = 500)
-    private String instructions;
-    private String prescribingDoctor;
+    private String recordSerialNumber; // Unique identifier for linking with chaincode
 
-    // Logical Deletion
-    private Boolean isDeleted = false;
+    private String clinicName;
 
-    // 新增字段：文件附件列表
+    private String primaryDiagnosis; // Primary condition diagnosed
+
+    private String dateOfDiagnosis; // Date of diagnosis
+
+    private String comment; // Additional notes or comments
+
+    private int recordVersion; // For tracking updates
+
+    private boolean isDeleted = false; // For soft delete
+
+    @OneToMany(mappedBy = "medicalRecord", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Attachment> attachments; // Associated attachments
+
     @OneToMany(mappedBy = "medicalRecord", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Attachment> attachments;
+    private List<SharePermission> sharedWithDoctors = new ArrayList<>();
 
-    // 添加患者和医生的引用
-    @ManyToOne
-    @JoinColumn(name = "patient_id", nullable = false)
-    private User patient; // 患者（用户）
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date dateOfCreate;
 
-    @ManyToOne
-    @JoinColumn(name = "doctor_id", nullable = false)
-    private Doctor doctor; // 医生
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date dateOfLastUpdate;
 
-    // Getters and Setters (新添加attachments字段)
-    public List<Attachment> getAttachments() {
-        return attachments;
+    public MedicalRecord() {
+        this.dateOfCreate = new Date(); // Set creation date at instantiation
+        this.dateOfLastUpdate = new Date(); // Set last update date at instantiation
+        this.attachments = new ArrayList<>(); // Initialize as empty list
+        this.sharedWithDoctors = new ArrayList<>(); // Initialize as empty list
     }
 
-    public void setAttachments(List<Attachment> attachments) {
-        this.attachments = attachments;
-    }
-
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -82,52 +63,36 @@ public class MedicalRecord {
         this.id = id;
     }
 
-    public String getPatientName() {
-        return patientName;
+    public Doctor getCreatorDoctor() {
+        return creatorDoctor;
     }
 
-    public void setPatientName(String patientName) {
-        this.patientName = patientName;
+    public void setCreatorDoctor(Doctor creatorDoctor) {
+        this.creatorDoctor = creatorDoctor;
     }
 
-    public String getGender() {
-        return gender;
+    public User getUser() {
+        return user;
     }
 
-    public void setGender(String gender) {
-        this.gender = gender;
+    public void setUser(User user) {
+        this.user = user;
     }
 
-    public Date getDateOfBirth() {
-        return dateOfBirth;
+    public String getRecordSerialNumber() {
+        return recordSerialNumber;
     }
 
-    public void setDateOfBirth(Date dateOfBirth) {
-        this.dateOfBirth = dateOfBirth;
+    public void setRecordSerialNumber(String recordSerialNumber) {
+        this.recordSerialNumber = recordSerialNumber;
     }
 
-    public String getRecordNo() {
-        return recordNo;
+    public String getClinicName() {
+        return clinicName;
     }
 
-    public void setRecordNo(String recordNo) {
-        this.recordNo = recordNo;
-    }
-
-    public String getSin() {
-        return sin;
-    }
-
-    public void setSin(String sin) {
-        this.sin = sin;
-    }
-
-    public String getNik() {
-        return nik;
-    }
-
-    public void setNik(String nik) {
-        this.nik = nik;
+    public void setClinicName(String clinicName) {
+        this.clinicName = clinicName;
     }
 
     public String getPrimaryDiagnosis() {
@@ -138,123 +103,67 @@ public class MedicalRecord {
         this.primaryDiagnosis = primaryDiagnosis;
     }
 
-    public Date getDateOfDiagnosis() {
+    public String getDateOfDiagnosis() {
         return dateOfDiagnosis;
     }
 
-    public void setDateOfDiagnosis(Date dateOfDiagnosis) {
+    public void setDateOfDiagnosis(String dateOfDiagnosis) {
         this.dateOfDiagnosis = dateOfDiagnosis;
     }
 
-    public String getDoctorsNotes() {
-        return doctorsNotes;
+    public Date getDateOfLastUpdate() {
+        return dateOfLastUpdate;
     }
 
-    public void setDoctorsNotes(String doctorsNotes) {
-        this.doctorsNotes = doctorsNotes;
+    public void setDateOfLastUpdate(Date dateOfLastUpdate) {
+        this.dateOfLastUpdate = dateOfLastUpdate;
     }
 
-    public String getTreatmentPlan() {
-        return treatmentPlan;
+    public Date getDateOfCreate() {
+        return dateOfCreate;
     }
 
-    public void setTreatmentPlan(String treatmentPlan) {
-        this.treatmentPlan = treatmentPlan;
+    public void setDateOfCreate(Date dateOfCreate) {
+        this.dateOfCreate = dateOfCreate;
     }
 
-    public String getNextSteps() {
-        return nextSteps;
+    public String getComment() {
+        return comment;
     }
 
-    public void setNextSteps(String nextSteps) {
-        this.nextSteps = nextSteps;
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 
-    public String getTreatmentStatus() {
-        return treatmentStatus;
+    public int getRecordVersion() {
+        return recordVersion;
     }
 
-    public void setTreatmentStatus(String treatmentStatus) {
-        this.treatmentStatus = treatmentStatus;
+    public void setRecordVersion(int recordVersion) {
+        this.recordVersion = recordVersion;
     }
 
-    public String getPhysicianName() {
-        return physicianName;
-    }
-
-    public void setPhysicianName(String physicianName) {
-        this.physicianName = physicianName;
-    }
-
-    public String getMedicationName() {
-        return medicationName;
-    }
-
-    public void setMedicationName(String medicationName) {
-        this.medicationName = medicationName;
-    }
-
-    public String getDosage() {
-        return dosage;
-    }
-
-    public void setDosage(String dosage) {
-        this.dosage = dosage;
-    }
-
-    public String getFrequency() {
-        return frequency;
-    }
-
-    public void setFrequency(String frequency) {
-        this.frequency = frequency;
-    }
-
-    public String getDuration() {
-        return duration;
-    }
-
-    public void setDuration(String duration) {
-        this.duration = duration;
-    }
-
-    public String getInstructions() {
-        return instructions;
-    }
-
-    public void setInstructions(String instructions) {
-        this.instructions = instructions;
-    }
-
-    public String getPrescribingDoctor() {
-        return prescribingDoctor;
-    }
-
-    public void setPrescribingDoctor(String prescribingDoctor) {
-        this.prescribingDoctor = prescribingDoctor;
-    }
-
-    public Boolean getDeleted() {
+    public boolean isDeleted() {
         return isDeleted;
     }
 
-    public void setDeleted(Boolean deleted) {
-        isDeleted = deleted;
+    public void setDeleted(boolean isDeleted) {
+        this.isDeleted = isDeleted;
     }
 
-    public User getPatient() {
-        return patient; // 返回患者
+    public List<Attachment> getAttachments() {
+        return attachments;
     }
 
-    public void setPatient(User patient) {
-        this.patient = patient; // 设置患者
+    public void setAttachments(List<Attachment> attachments) {
+        this.attachments = attachments;
     }
 
-    public Doctor getDoctor() {
-        return doctor; // 返回医生
+    public List<SharePermission> getSharedWithDoctors() {
+        return sharedWithDoctors;
     }
 
-    public void setDoctor(Doctor doctor) {
-        this.doctor = doctor; // 设置医生
+    public void setSharedWithDoctors(List<SharePermission> sharedWithDoctors) {
+        this.sharedWithDoctors = sharedWithDoctors;
     }
 }

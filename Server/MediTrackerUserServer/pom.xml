@@ -32,7 +32,14 @@
         <jjwt.version>0.12.6</jjwt.version>
         <resend.version>3.1.0</resend.version>
         <dotenv.version>3.0.0</dotenv.version>
+        <ipfs.version>1.4.4</ipfs.version>
     </properties>
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -55,10 +62,6 @@
             <artifactId>json-schema-validator</artifactId>
             <version>1.0.86</version>
         </dependency>
-
-
-
-
 
         <!-- redis -->
         <dependency>
@@ -106,10 +109,18 @@
             <version>${springdoc.version}</version>
         </dependency>
 
+        <!-- dotenv -->
         <dependency>
             <groupId>io.github.cdimascio</groupId>
             <artifactId>dotenv-java</artifactId>
             <version>${dotenv.version}</version>
+        </dependency>
+
+        <!-- IPFS -->
+        <dependency>
+            <groupId>com.github.ipfs</groupId>
+            <artifactId>java-ipfs-http-client</artifactId>
+            <version>${ipfs.version}</version>
         </dependency>
 
         <!-- 测试依赖 -->

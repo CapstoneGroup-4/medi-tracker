@@ -7,9 +7,9 @@ import org.springframework.stereotype.Service;
 import edu.capstone4.userserver.repository.UserRepository;
 import edu.capstone4.userserver.exceptions.ResourceNotFoundException;
 import java.util.List;
-import edu.capstone4.userserver.exception.BusinessException;
-import edu.capstone4.userserver.exception.ErrorCode;
-import edu.capstone4.userserver.exception.RoleNotFoundException;
+import edu.capstone4.userserver.exceptions.BusinessException;
+import edu.capstone4.userserver.exceptions.ErrorCode;
+import edu.capstone4.userserver.exceptions.RoleNotFoundException;
 import edu.capstone4.userserver.models.ERole;
 import edu.capstone4.userserver.models.Role;
 import edu.capstone4.userserver.repository.RoleRepository;
@@ -27,11 +27,17 @@ public class UserService {
 
     public User createUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setEnabled(false);
         return userRepository.save(user);
     }
 
     public User getUserById(Long id) {
         return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 

@@ -35,6 +35,7 @@ public class JwtUtils {
 
     return Jwts.builder()
             .subject((userPrincipal.getUsername()))
+            .claim("userId", userPrincipal.getId())
             .issuedAt(new Date())
             .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
             .signWith(key(), algorithm)
@@ -54,6 +55,14 @@ public class JwtUtils {
             .build();
     Claims claims = jwtParser.parseSignedClaims(token).getPayload();
     return claims.getSubject();
+  }
+
+  public Long getUserIdFromJwtToken(String token) {
+    JwtParser jwtParser = Jwts.parser()
+            .verifyWith(key())
+            .build();
+    Claims claims = jwtParser.parseSignedClaims(token).getPayload();
+    return claims.get("userId", Long.class); // 获取并返回 userId
   }
 
   public boolean validateJwtToken(String authToken) {

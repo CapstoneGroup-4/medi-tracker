@@ -2,7 +2,12 @@ package edu.capstone4.userserver.jwt;
 
 import java.io.IOException;
 
+import edu.capstone4.userserver.exceptions.BusinessException;
+import edu.capstone4.userserver.models.Doctor;
+import edu.capstone4.userserver.models.User;
+import edu.capstone4.userserver.services.DoctorService;
 import edu.capstone4.userserver.services.UserDetailsServiceImpl;
+import edu.capstone4.userserver.services.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,6 +31,12 @@ public class AuthTokenFilter extends OncePerRequestFilter {
   @Autowired
   private UserDetailsServiceImpl userDetailsService;
 
+  @Autowired
+  private UserService userService;
+
+  @Autowired
+  private DoctorService doctorService;
+
   private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
 
   @Override
@@ -36,8 +47,25 @@ public class AuthTokenFilter extends OncePerRequestFilter {
       String jwt = parseJwt(request);
       if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
         String username = jwtUtils.getUserNameFromJwtToken(jwt);
+        Long userId = jwtUtils.getUserIdFromJwtToken(jwt);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+        // 检查用户是否启用，医生是否已激活（如果用户有 Doctor 信息）
+        Doctor doctor = null;
+        try {
+         doctor = doctorService.getDoctorByUserId(userId);
+        } catch (BusinessException e) {
+          // 如果用户是医生，但是没有 Doctor 信息，不做处理
+        }
+
+        User user = userService.getUserById(userId);
+        if (user != null && !user.isEnabled() || (doctor != null && !doctor.isActivated())) {
+          logger.warn("User account is not active or doctor account is not activated: " + username);
+          response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "User or doctor account is not activated");
+          return; // 中止后续认证
+        }
+
         UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(
                 userDetails,
@@ -46,6 +74,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        logger.info("Set SecurityContext for user: {}", userDetails.getUsername());
+        logger.info("Authentication Authorities: {}", userDetails.getAuthorities());
       }
     } catch (Exception e) {
       logger.error("Cannot set user authentication: {}", e);

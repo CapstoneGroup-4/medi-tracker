@@ -7,9 +7,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import edu.capstone4.userserver.events.registers.RegistrationCompleteEvent;
-import edu.capstone4.userserver.exception.BusinessException;
-import edu.capstone4.userserver.exception.ErrorCode;
-import edu.capstone4.userserver.exception.RoleNotFoundException;
+import edu.capstone4.userserver.exceptions.BusinessException;
+import edu.capstone4.userserver.exceptions.ErrorCode;
+import edu.capstone4.userserver.exceptions.RoleNotFoundException;
 import edu.capstone4.userserver.models.Doctor;
 import edu.capstone4.userserver.models.ERole;
 import edu.capstone4.userserver.models.Role;
@@ -169,7 +169,28 @@ public class AuthController {
     @PostMapping("/doctor-signup")
     public ResponseEntity<?> doctorVerification(@Valid @RequestBody DoctorSignupRequest doctorSignupRequest) {
         // 检查医生是否已存在
+        if (doctorRepository.existsByUserId(doctorSignupRequest.getUserId())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new BaseResponse<>(
+                            ErrorCode.DOCTOR_EXIST.getMessage(), ErrorCode.DOCTOR_EXIST.getCode()));
+        }
+
         if (doctorRepository.existsByPersonalId(doctorSignupRequest.getPersonalId())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new BaseResponse<>(
+                            ErrorCode.DOCTOR_EXIST.getMessage(), ErrorCode.DOCTOR_EXIST.getCode()));
+        }
+
+        if (doctorRepository.existsByLicense(doctorSignupRequest.getLicense())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new BaseResponse<>(
+                            ErrorCode.DOCTOR_EXIST.getMessage(), ErrorCode.DOCTOR_EXIST.getCode()));
+        }
+
+        if (doctorRepository.existsByProfessionalId(doctorSignupRequest.getProfessionalId())) {
             return ResponseEntity
                     .badRequest()
                     .body(new BaseResponse<>(
@@ -198,17 +219,19 @@ public class AuthController {
                 doctorSignupRequest.getClinicName()
         );
 
+        if (doctorSignupRequest.getMembership() != null) {
+            doctor.setMembership(doctorSignupRequest.getMembership());
+        }
+
         // 关联 User 对象
         doctor.setUser(user);
         doctorRepository.save(doctor);
 
         // 获取关联的 User email
         String email = user.getEmail();
-
         // 生成验证码
         String verificationCode = verificationCodeService.generateCode();
         verificationCodeService.saveCode(user.getEmail(), verificationCode);
-
         // 发布用户注册完成事件
         eventPublisher.publishEvent(new RegistrationCompleteEvent(email, verificationCode));
 
