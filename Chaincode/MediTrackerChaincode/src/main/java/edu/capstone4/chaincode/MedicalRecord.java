@@ -1,8 +1,7 @@
 package edu.capstone4.chaincode;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Objects;
+import java.util.Set; // import Set
 
 import com.owlike.genson.annotation.JsonProperty;
 import org.hyperledger.fabric.contract.annotation.DataType;
@@ -18,7 +17,7 @@ public class MedicalRecord {
     private String date;
 
     @Property()
-    private String doctor;
+    private String doctorId; // doctor -> doctorId
 
     @Property()
     private String clinic;
@@ -33,24 +32,29 @@ public class MedicalRecord {
     private String comment; //new
 
     @Property()
-    private ArrayList<String> permissions; //new
+    private Set<String> permissions; // ArrayList -> Set
+
+    @Property()
+    private String ipfsFileId; // new field: ipfsFileId
 
     public MedicalRecord(@JsonProperty("recordId") String recordId,
                          @JsonProperty("date") String date,
-                         @JsonProperty("doctor") String doctor,
+                         @JsonProperty("doctorId") String doctorId, // doctor -> doctorId
                          @JsonProperty("clinic") String clinic,
                          @JsonProperty("detail") String detail,
                          @JsonProperty("recordVersion") int recordVersion,
                          @JsonProperty("comment") String comment,
-                         @JsonProperty("permissions") ArrayList<String> permissions) {
+                         @JsonProperty("permissions") Set<String> permissions, // ArrayList -> Set
+                         @JsonProperty("ipfsFileId") String ipfsFileId) { // new field: ipfsFileId
         this.recordId = recordId;
         this.date = date;
-        this.doctor = doctor;
+        this.doctorId = doctorId; // doctor -> doctorId
         this.clinic = clinic;
         this.detail = detail;
         this.recordVersion = recordVersion; // new
         this.comment = comment; // new
-        this.permissions = permissions; // new
+        this.permissions = permissions; // ArrayList -> Set
+        this.ipfsFileId = ipfsFileId; // new field: ipfsFileId
     }
 
     public String getRecordId() {
@@ -69,12 +73,12 @@ public class MedicalRecord {
         this.date = date;
     }
 
-    public String getDoctor() {
-        return doctor;
+    public String getDoctorId() {
+        return doctorId;
     }
 
-    public void setDoctor(String doctor) {
-        this.doctor = doctor;
+    public void setDoctorId(String doctorId) {
+        this.doctorId = doctorId;
     }
 
     public String getClinic() {
@@ -109,12 +113,16 @@ public class MedicalRecord {
         this.comment = comment;
     }
 
-    public ArrayList<String> getPermissions() {
+    public Set<String> getPermissions() {
         return permissions;
     }
 
-    public void setPermissions(ArrayList<String> permissions) {
+    public void setPermissions(Set<String> permissions) {
         this.permissions = permissions;
+    }
+
+    public String getIpfsFileId() {
+        return ipfsFileId;
     }
 
     @Override
@@ -129,30 +137,34 @@ public class MedicalRecord {
         MedicalRecord that = (MedicalRecord) o;
         return Objects.equals(recordId, that.recordId) &&
                 Objects.equals(date, that.date) &&
-                Objects.equals(doctor, that.doctor) &&
+                Objects.equals(doctorId, that.doctorId) && // doctor -> doctorId
                 Objects.equals(clinic, that.clinic) &&
-                Objects.equals(detail, that.detail);
+                Objects.equals(detail, that.detail) &&
+                Objects.equals(ipfsFileId, that.ipfsFileId);
     }
 
     @Override
     // no comparisons of versions, comments and permissions
+    // included ipfsFileId in hashCode (new)
     public int hashCode() {
-        int result = Objects.hash(recordId, date, doctor, clinic, detail);
+        int result = Objects.hash(recordId, date, doctorId, clinic, detail, recordVersion, comment, ipfsFileId); // added ipfsFileId
         result = 31 * result;
         return result;
     }
 
     @Override
     // no permissions
+    // included ipfsFileId in toString (new)
     public String toString() {
         return "MedicalRecord{" +
                 "recordID='" + recordId + '\'' +
                 ", date='" + date + '\'' +
-                ", doctor='" + doctor + '\'' +
+                ", doctorId='" + doctorId + '\'' + // doctor -> doctorId
                 ", clinic='" + clinic + '\'' +
                 ", detail='" + detail + '\'' +
                 ", recordVersion=" + recordVersion +
                 ", comment='" + comment + '\'' +
+                ", ipfsFileId='" + ipfsFileId + '\'' + // included ipfsFileId
                 '}';
     }
 }

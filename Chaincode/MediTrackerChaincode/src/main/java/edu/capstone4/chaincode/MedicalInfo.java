@@ -1,8 +1,7 @@
 package edu.capstone4.chaincode;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Objects;
+import java.util.Set;
 
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
@@ -34,7 +33,7 @@ public class MedicalInfo {
     private String patientPrivateKey; //new, permission control
 
     @Property()
-    private ArrayList<MedicalRecord> medicalRecords; // arraylist
+    private Set<MedicalRecord> medicalRecords; // arraylist -> Set
 
 
     public MedicalInfo(@JsonProperty("patientId") String patientId,
@@ -44,7 +43,7 @@ public class MedicalInfo {
                        @JsonProperty("medicalVersion") int medicalVersion,
                        @JsonProperty("comment") String comment,
                        @JsonProperty("patientPrivateKey") String patientPrivateKey,
-                       @JsonProperty("medicalRecords") ArrayList<MedicalRecord> medicalRecords) {
+                       @JsonProperty("medicalRecords") Set<MedicalRecord> medicalRecords) {
         this.patientId = patientId;
         this.patientName = patientName;
         this.patientGender = patientGender;
@@ -111,11 +110,11 @@ public class MedicalInfo {
         this.patientPrivateKey = patientPrivateKey;
     }
 
-    public ArrayList<MedicalRecord> getMedicalRecords() {
+    public Set<MedicalRecord> getMedicalRecords() {
         return medicalRecords;
     }
 
-    public void setMedicalRecords(ArrayList<MedicalRecord> medicalRecords) {
+    public void setMedicalRecords(Set<MedicalRecord> medicalRecords) {
         this.medicalRecords = medicalRecords;
     }
 

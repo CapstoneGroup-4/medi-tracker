@@ -8,16 +8,14 @@ import org.hyperledger.fabric.shim.ChaincodeStub;
 
 import com.owlike.genson.Genson;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 @Contract(
         name = "MediTracker",
         info = @Info(
                 title = "Medical Record Management",
                 description = "A contract for managing patient medical records",
-                version = "1.0.0",
+                version = "1.0.1",
                 license = @License(
                         name = "Apache 2.0 License",
                         url = "http://www.apache.org/licenses/LICENSE-2.0.html"),
@@ -35,7 +33,6 @@ public class MedicalRecordContract implements ContractInterface {
     private enum MedicalRecordErrors {
         RECORD_NOT_FOUND,
         RECORD_ALREADY_EXISTS,
-
         NO_PERMISSION
     }
 
@@ -43,12 +40,12 @@ public class MedicalRecordContract implements ContractInterface {
     // only for testing
     public String initLedger(final Context ctx) {
         ChaincodeStub stub = ctx.getStub();
-        ArrayList<String> permission1 = new ArrayList<>(List.of("Dr.Smith_PrivateKey"));
-        ArrayList<String> permission2 = new ArrayList<>(List.of("Dr.Jones_PrivateKey"));
+        Set<String> permission1 = new HashSet<>(Set.of("Dr.Smith_PrivateKey"));
+        Set<String> permission2 = new HashSet<>(Set.of("Dr.Jones_PrivateKey"));
 
-        ArrayList<MedicalRecord> records = new ArrayList<>();
-        records.add( new MedicalRecord("record1", "2021-01-01", "Dr. Smith", "Clinic A", "Annual check-up",0,"test", permission1));
-        records.add( new MedicalRecord("record2", "2021-02-01", "Dr. Jones", "Clinic B", "Follow-up visit",0,"test", permission2));
+        Set<MedicalRecord> records = new HashSet<>();
+        records.add(new MedicalRecord("record1", "2021-01-01", "Dr. Smith", "Clinic A", "Annual check-up", 0, "test", permission1, "field1"));
+        records.add(new MedicalRecord("record2", "2021-02-01", "Dr. Jones", "Clinic B", "Follow-up visit", 0, "test", permission2, "field2"));
 
         MedicalInfo medicalInfo1 = new MedicalInfo("001", "John Doe", "M", "john.doe@example.com", 0,"test", "patient001__PrivateKey", records);
         MedicalInfo medicalInfo2 = new MedicalInfo("002", "Tom C", "M", "Tome.c@example.com", 0,"test", "patient002__PrivateKey", records);
@@ -57,7 +54,6 @@ public class MedicalRecordContract implements ContractInterface {
         stub.putStringState("001", json1);
         String json2 = genson.serialize(medicalInfo2);
         stub.putStringState("002", json2);
-
 
         return medicalInfo1.toString() + '\n' + medicalInfo2.toString();
 
@@ -87,7 +83,7 @@ public class MedicalRecordContract implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public String createMedicalInfo(final Context ctx, String patientId, String patientName,
                                     String patientGender, String patientEmail, String patientPrivateKey,
-                                    ArrayList<MedicalRecord> records) {
+                                    Set<MedicalRecord> records) {
         ChaincodeStub stub = ctx.getStub();
 
         if (medicalRecordExists(ctx, patientId)) {
@@ -106,7 +102,7 @@ public class MedicalRecordContract implements ContractInterface {
     // only the patient has access to all medical records
     public String updateMedicalInfo(final Context ctx, String patientId, String patientName,
                                     String patientGender, String patientEmail,
-                                    String patientPrivateKey, ArrayList<MedicalRecord> records) {
+                                    String patientPrivateKey, Set<MedicalRecord> records) {
         ChaincodeStub stub = ctx.getStub();
         String medicalInfoJson = stub.getStringState(patientId);
 
@@ -233,7 +229,6 @@ public class MedicalRecordContract implements ContractInterface {
         throw new ChaincodeException(errorMessage, MedicalRecordErrors.RECORD_NOT_FOUND.toString());
 
     }
-
 
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public String updateMedicalRecord(final Context ctx, String patientId, String recordId, String permissionPrivateKey,MedicalRecord updatedRecord) {

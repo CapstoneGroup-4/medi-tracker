@@ -1,48 +1,56 @@
 # CHAINCODE
 
-### Update Log
+### Update Notes - 20241117
 
-1. Fixed the bug where chaincode invocation resulted in no output.
-2. Added `recordVersion`, `comment`, and `permissions` fields to the **MedicalRecord**, enabling version control and permissions management for create, read, update, and delete (CRUD) operations.
-3. Added `medicalVersion`, `comment`, and `patientPrivateKey` fields to the **MedicalInfo**, enabling version control and permissions management for CRUD operations.
-4. Replaced the original array structure with `ArrayList` to improve flexibility for adding and removing data.
-5. Enhanced the CRUD operations for **MedicalRecord** and **MedicalInfo**.
-6. Implemented permission control for medical data access.
+1. Changed ArrayList to Set in the code to automatically remove duplicates.
+2. Added `private final String ipfsFileId` to the `MedicalRecord` class to store the address of the medical record.
+3. Changed `doctor` to `doctorID` to clarify its meaning.
+4. Tested the chaincode on the test network.
+
+### Update Notes - 20241110
+
+1. Fixed the bug where chaincode invocation results were not displayed.
+2. Added `recordVersion`, `comment`, and `permissions` fields to the `medicalRecord` to implement version control and access control for create, read, update, and delete (CRUD) operations.
+3. Added `medicalVersion`, `comment`, and `patientPrivateKey` fields to the `medicalInfo` to implement version control and access control for CRUD operations.
+4. Replaced the original array data structure with an `ArrayList` to increase flexibility in data modification.
+5. Improved the CRUD functionality for `medicalRecord` and `medicalInfo`.
+6. Implemented access control for medical data.
 7. Tested the chaincode on the test network.
 
----
+------
 
-### 1. **MedicalRecord Class**
+### 1. **MedicalRecord Class (Medical Record)**
 
-- **Fields:**
-    - `recordId`: The record ID, a unique identifier for a medical record.
-    - `date`: The date of the medical record.
-    - `doctor`: The name of the doctor responsible for the medical record.
-    - `clinic`: The name of the clinic providing the medical service.
-    - `detail`: A detailed description of the medical record.
-    - `recordVersion`: The version number of the record, used to track updates (new).
-    - `comment`: Comments or remarks about the record (new).
-    - `permissions`: A list of permissions for viewing or modifying the record (new).
-- **Methods:**
-    - Getters and setters are provided for each field.
-    - `equals()`, `hashCode()`, and `toString()` methods are implemented for comparing and outputting object information. Note that version numbers, comments, and permissions are not used for comparison.
+- Attributes:
+  - `recordId`: The record ID, which uniquely identifies a medical record.
+  - `date`: The date of the medical record.
+  - `doctorID`: The ID of the doctor responsible for the medical record.
+  - `clinic`: The name of the clinic providing medical services.
+  - `detail`: A detailed description of the record.
+  - `recordVersion`: The version number of the record for tracking updates (newly added).
+  - `comment`: Remarks related to the record (newly added).
+  - `ipfsField`: The field used to store the address of the medical record (newly added).
+  - `permissions`: A list of permissions allowing access or modification of the record (newly added).
+- Methods:
+  - Provides getter and setter methods for each attribute.
+  - Implements `equals()`, `hashCode()`, and `toString()` methods for object comparison and output. Note that version number, remarks, and permissions are not used in comparison operations.
 
----
+------
 
-### 2. **MedicalInfo Class**
+### 2. **MedicalInfo Class (Patient Medical Information)**
 
-- **Fields:**
-    1. **`patientId`**: The patient ID, a unique identifier for a patient.
-    2. **`patientName`**: The patient's name.
-    3. **`patientGender`**: The patient's gender.
-    4. **`patientEmail`**: The patient's email address.
-    5. **`medicalVersion`**: The version number of the patient’s medical information.
-    6. **`comment`**: Comments or remarks about the medical information.
-    7. **`patientPrivateKey`**: The patient's private key.
-    8. **`medicalRecords`**: A list of the patient's medical records (`ArrayList<MedicalRecord>`).
-- **Methods:**
-    - Getters and setters are provided for each field.
-    - `equals()`, `hashCode()`, and `toString()` methods are implemented for comparing and outputting object information.
+- Attributes:
+  1. **`patientId`**: The patient ID, which uniquely identifies a patient.
+  2. **`patientName`**: The patient's name.
+  3. **`patientGender`**: The patient's gender.
+  4. **`patientEmail`**: The patient's email address.
+  5. **`medicalVersion`**: The version number of the patient's medical information.
+  6. **`comment`**: Remarks related to the medical information.
+  7. **`patientPrivateKey`**: The patient's private key.
+  8. **`medicalRecords`**: A list of the patient's medical records (`Set`).
+- Methods:
+  - Provides getter and setter methods for each attribute.
+  - Implements `equals()`, `hashCode()`, and `toString()` methods for object comparison and output.
 
 ---
 

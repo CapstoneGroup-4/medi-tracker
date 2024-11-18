@@ -1,6 +1,13 @@
 # Chaincode 说明
 
-### 更新说明
+### 更新说明 - 20241117
+
+1. 将代码中ArrayList修改为Set集合，达到自动去重目的；
+2. MedicalRecord新增private final String ipfsFileId，用于存放MedicalRecord存放地址
+3. doctor改为doctorID，使意义更清晰；
+4. 测试网测试chaincode。
+
+### 更新说明 - 20241110
 
 1. 修改chaincode调用结果无内容显示bug
 2. 在 medical record 中增加 recordVersion，comment，permissions 字段，实现增删改查版本控制及权限控制功能。
@@ -10,39 +17,40 @@
 6. 实现医疗数据权限控制功能。
 7. 测试网测试chaincode。
 
----
+------
 
 ### 1. **MedicalRecord类（医疗记录）**
 
-- **属性：**
-    - `recordId`：记录ID，唯一标识一个医疗记录。
-    - `date`：医疗记录的日期。
-    - `doctor`：负责该医疗记录的医生姓名。
-    - `clinic`：提供医疗服务的诊所名称。
-    - `detail`：记录的详细描述。
-    - `recordVersion`：记录的版本号，用于跟踪更新（新增）。
-    - `comment`：关于该记录的备注（新增）。
-    - `permissions`：允许查看或修改该记录的权限列表（新增）。
-- **方法：**
-    - 提供了获取和设置每个属性的getter和setter方法。
-    - 实现了`equals()`、`hashCode()`和`toString()`方法，用于比较和输出对象信息。注意，版本号、备注和权限不会被用于比较操作。
+- 属性：
+  - `recordId`：记录ID，唯一标识一个医疗记录。
+  - `date`：医疗记录的日期。
+  - `doctorID`：负责该医疗记录的医生ID。
+  - `clinic`：提供医疗服务的诊所名称。
+  - `detail`：记录的详细描述。
+  - `recordVersion`：记录的版本号，用于跟踪更新（新增）。
+  - `comment`：关于该记录的备注（新增）。
+  - `ipfsField`：用于存放病历地址。（新增）
+  - `permissions`：允许查看或修改该记录的权限列表（新增）。
+- 方法：
+  - 提供了获取和设置每个属性的getter和setter方法。
+  - 实现了`equals()`、`hashCode()`和`toString()`方法，用于比较和输出对象信息。注意，版本号、备注和权限不会被用于比较操作。
 
----
+------
 
 ### 2. **MedicalInfo 类（病人医疗信息）**
 
-- **属性：**
-    1. **`patientId`**：病人ID，唯一标识一个病人。
-    2. **`patientName`**：病人姓名。
-    3. **`patientGender`**：病人性别。
-    4. **`patientEmail`**：病人的电子邮件地址。
-    5. **`medicalVersion`**：病人的医疗信息版本号。
-    6. **`comment`**：关于医疗信息的备注。
-    7. **`patientPrivateKey`**：病人的私钥。
-    8. **`medicalRecords`**：病人的医疗记录列表（`ArrayList<MedicalRecord>`）。
-- **方法：**
-    - 提供了获取和设置每个属性的getter和setter方法。
-    - 实现了`equals()`、`hashCode()`和`toString()`方法，用于比较和输出对象信息。
+- 属性：
+  1. **`patientId`**：病人ID，唯一标识一个病人。
+  2. **`patientName`**：病人姓名。
+  3. **`patientGender`**：病人性别。
+  4. **`patientEmail`**：病人的电子邮件地址。
+  5. **`medicalVersion`**：病人的医疗信息版本号。
+  6. **`comment`**：关于医疗信息的备注。
+  7. **`patientPrivateKey`**：病人的私钥。
+  8. **`medicalRecords`**：病人的医疗记录列表（`Set`）。
+- 方法：
+  - 提供了获取和设置每个属性的getter和setter方法。
+  - 实现了`equals()`、`hashCode()`和`toString()`方法，用于比较和输出对象信息。
 
 ---
 
