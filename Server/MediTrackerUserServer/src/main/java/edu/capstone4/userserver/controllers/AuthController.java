@@ -1,9 +1,6 @@
 package edu.capstone4.userserver.controllers;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import edu.capstone4.userserver.events.registers.RegistrationCompleteEvent;
@@ -19,6 +16,7 @@ import edu.capstone4.userserver.payload.request.LoginRequest;
 import edu.capstone4.userserver.payload.request.SignupRequest;
 import edu.capstone4.userserver.payload.response.BaseResponse;
 import edu.capstone4.userserver.payload.response.JwtResponse;
+import edu.capstone4.userserver.payload.response.RoleResponse;
 import edu.capstone4.userserver.payload.response.SignupResponse;
 import edu.capstone4.userserver.repository.DoctorRepository;
 import edu.capstone4.userserver.repository.UserRepository;
@@ -89,13 +87,25 @@ public class AuthController {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(item -> item.getAuthority())
-                .collect(Collectors.toList());
+                .toList();
+
+        List<RoleResponse> roleResponseList = new ArrayList<>();
+
+        for (String role : roles) {
+            if (role.equals("DOCTOR")) {
+                Doctor doctor = doctorRepository.findByUserId(userDetails.getId())
+                        .orElseThrow(() -> new UsernameNotFoundException("Doctor Not Found with user id: " + userDetails.getId()));
+                roleResponseList.add(new RoleResponse(role, doctor.getId()));
+            } else {
+                roleResponseList.add(new RoleResponse(role, userDetails.getId()));
+            }
+        }
 
         return ResponseEntity.ok(new BaseResponse<>(new JwtResponse(jwt,
                 userDetails.getId(),
                 userDetails.getUsername(),
                 userDetails.getEmail(),
-                roles)));
+                roleResponseList)));
     }
 
     @PostMapping("/signup")
