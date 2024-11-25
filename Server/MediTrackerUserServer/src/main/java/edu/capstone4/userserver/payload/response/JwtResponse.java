@@ -8,9 +8,9 @@ public class JwtResponse {
   private Long id;
   private String username;
   private String email;
-  private List<String> roles;
+  private List<RoleResponse> roles;
 
-  public JwtResponse(String accessToken, Long id, String username, String email, List<String> roles) {
+  public JwtResponse(String accessToken, Long id, String username, String email, List<RoleResponse> roles) {
     this.token = accessToken;
     this.id = id;
     this.username = username;
@@ -58,7 +58,7 @@ public class JwtResponse {
     this.username = username;
   }
 
-  public List<String> getRoles() {
+  public List<RoleResponse> getRoles() {
     return roles;
   }
 }
